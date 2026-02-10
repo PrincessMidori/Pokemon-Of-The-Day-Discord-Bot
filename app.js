@@ -1,4 +1,5 @@
 const express = require('express');
+const axios = require('axios');
 const {
   InteractionType,
   InteractionResponseType,
@@ -9,6 +10,12 @@ require('dotenv').config();
 const { registerCommands, handlePotdCommand } = require('./commands');
 const cacheService = require('./services/cacheService');
 const { createPokemonEmbed } = require('./utils');
+
+async function sendFollowupMessage(interactionToken, message) {
+  const url = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_APP_ID}/${interactionToken}`;
+  return axios.post(url, message);
+}
+
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -71,7 +78,7 @@ app.post('/interactions', (req, res) => {
   // Body is already parsed by express.json middleware
   const { type, data, member } = req.body;
 
-  console.log('⚙️ Processing interaction type:', type);
+  console.log('Processing interaction type:', type);
 
   // Handle ping
   if (type === InteractionType.PING) {
@@ -86,32 +93,34 @@ app.post('/interactions', (req, res) => {
 
     console.log(`Command: /${name} from user ${userId}`);
 
-    if (name === 'potd') {
-      handlePotdCommand(userId)
-        .then(pokemon => {
-          const embed = createPokemonEmbed(pokemon, userId);
-          console.log(`Responding with: ${pokemon.name}`);
+if (name === 'potd') {
+  // Acknowledge immediately
+  res.json({
+    type: InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
+  });
 
-          return res.json({
-            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-            data: {
-              embeds: [embed]
-            }
-          });
-        })
-        .catch(error => {
-          console.error('Error fetching pokemon:', error.message);
-          return res.json({
-            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-            data: {
-              content: 'Failed to fetch your Pokémon of the day. Please try again later.',
-              flags: 64
-            }
-          });
-        });
-      return;
-    }
+  // Continue processing asynchronously
+  handlePotdCommand(userId)
+    .then(async pokemon => {
+      const embed = createPokemonEmbed(pokemon, userId);
+
+      // Send follow-up message
+      await sendFollowupMessage(req.body.token, {
+        embeds: [embed]
+      });
+    })
+    .catch(async error => {
+      console.error('Error fetching pokemon:', error.message);
+
+      await sendFollowupMessage(req.body.token, {
+        content: 'Failed to fetch your Pokémon of the day. Please try again later.',
+        flags: 64
+      });
+    });
+
+  return;
   }
+}
 
   console.log('Unhandled interaction');
   return res.status(400).json({ error: 'Unknown interaction type' });
