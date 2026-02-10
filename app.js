@@ -89,7 +89,7 @@ app.post('/interactions', (req, res) => {
     if (name === 'potd') {
       handlePotdCommand(userId)
         .then(pokemon => {
-          const embed = createPokemonEmbed(pokemon);
+          const embed = createPokemonEmbed(pokemon, userId);
           console.log(`Responding with: ${pokemon.name}`);
 
           return res.json({
