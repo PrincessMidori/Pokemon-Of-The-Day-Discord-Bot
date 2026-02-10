@@ -9,7 +9,7 @@ function createPokemonEmbed(pokemon, userId) {
 
     return {
         color: pokemon.isShiny ? 0xF1C40F : 0xFF6B6B,
-        title: `<@${userId}>'s Pokémon of the Day: ${displayName}`,
+        title: `<@!${userId}>'s Pokémon of the Day: ${displayName}`,
         image: { url: pokemon.imageUrl },
         fields: [
             { name: '🔢 ID', value: `#${pokemon.id}`, inline: true },
