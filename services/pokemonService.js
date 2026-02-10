@@ -20,17 +20,29 @@ async function getRandomPokemon() {
  * Format the API response into a user-friendly object
  */
 function formatPokemonData(data) {
+    const isShiny = Math.random() < (1 / 648);
     const hpStat = data.stats.find(s => s.stat.name === 'hp');
     const attackStat = data.stats.find(s => s.stat.name === 'attack');
     const defenseStat = data.stats.find(s => s.stat.name === 'defense');
-    const spAtkStat = data.stats.find(s => s.stat.name === 'sp-atk');
-    const spDefStat = data.stats.find(s => s.stat.name === 'sp-def');
+    const spAtkStat = data.stats.find(s => s.stat.name === 'special-attack');
+    const spDefStat = data.stats.find(s => s.stat.name === 'special-defense');
     const speedStat = data.stats.find(s => s.stat.name === 'speed');
+
+    let displayName = data.name.charAt(0).toUpperCase() + data.name.slice(1);
+
+    if (isShiny) {
+        displayName = `Shiny ${displayName}`;
+    }
+
+    const imageUrl = isShiny 
+        ? (data.sprites.other['official-artwork'].front_shiny || data.sprites.front_shiny)
+        : (data.sprites.other['official-artwork'].front_default || data.sprites.front_default);
 
     return {
         id: data.id,
-        name: data.name.charAt(0).toUpperCase() + data.name.slice(1),
-        imageUrl: data.sprites.other['official-artwork'].front_default || data.sprites.front_default,
+        name: displayName,
+        imageUrl: imageUrl,
+        isShiny: isShiny,
         types: data.types.map(t => t.type.name).join(', '),
         hp: hpStat ? hpStat.base_stat : 0,
         attack: attackStat ? attackStat.base_stat : 0,

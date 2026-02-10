@@ -18,7 +18,7 @@ async function registerCommands() {
     const rest = new REST({ version: '9' }).setToken(process.env.DISCORD_TOKEN);
 
     try {
-        console.log('🔄 Registering slash commands...');
+        console.log('Registering slash commands...');
 
         await rest.put(
             Routes.applicationGuildCommands(
@@ -30,7 +30,7 @@ async function registerCommands() {
 
         console.log('✓ Slash commands registered successfully');
     } catch (error) {
-        console.error('❌ Error registering commands:', error);
+        console.error('Error registering commands:', error);
     }
 }
 
@@ -43,13 +43,13 @@ async function handlePotdCommand(userId) {
         let pokemon = await cacheService.getUserPokemonOfDay(userId);
 
         if (!pokemon) {
-            console.log(`🎲 Generating new Pokemon for user ${userId}`);
+            console.log(`Generating new Pokemon for user ${userId}`);
             // Get a new random Pokemon
             pokemon = await pokemonService.getRandomPokemon();
             // Cache it for 24 hours
             await cacheService.setUserPokemonOfDay(userId, pokemon);
         } else {
-            console.log(`🎯 User ${userId} already has a Pokemon for today`);
+            console.log(`User ${userId} already has a Pokemon for today`);
         }
 
         return pokemon;

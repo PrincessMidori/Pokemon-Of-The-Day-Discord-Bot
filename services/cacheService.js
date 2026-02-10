@@ -36,7 +36,7 @@ async function setUserPokemonOfDay(userId, pokemonData) {
     try {
         await client.setEx(
             `potd:${userId}`,
-            86400, // 24 hours in seconds
+            86400 / 2, // 24 hours in seconds / 2 so that user can have fun earlier
             JSON.stringify(pokemonData)
         );
     } catch (error) {

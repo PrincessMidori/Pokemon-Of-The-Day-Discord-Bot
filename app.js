@@ -31,10 +31,10 @@ function verifyDiscordSignature(req) {
   const timestamp = req.get('X-Signature-Timestamp');
   const rawBody = req.rawBody;
 
-  console.log('🔍 Verifying signature...');
+  console.log('Verifying signature...');
 
   if (!signature || !timestamp || !rawBody) {
-    console.log('❌ Missing signature, timestamp, or body');
+    console.log('Missing signature, timestamp, or body');
     return false;
   }
 
@@ -46,25 +46,25 @@ function verifyDiscordSignature(req) {
     );
 
     if (isValid) {
-      console.log('✅ Signature valid');
+      console.log('Signature valid');
     } else {
-      console.log('❌ Signature invalid');
+      console.log('Signature invalid');
     }
 
     return isValid;
   } catch (error) {
-    console.error('❌ Verification error:', error.message);
+    console.error('Verification error:', error.message);
     return false;
   }
 }
 
 // Interactions endpoint
 app.post('/interactions', (req, res) => {
-  console.log('\n📨 POST /interactions received');
+  console.log('\n POST /interactions received');
 
   // Verify signature first
   if (!verifyDiscordSignature(req)) {
-    console.log('❌ Rejecting request - signature verification failed');
+    console.log('Rejecting request - signature verification failed');
     return res.status(401).json({ error: 'Invalid signature' });
   }
 
@@ -75,7 +75,7 @@ app.post('/interactions', (req, res) => {
 
   // Handle ping
   if (type === InteractionType.PING) {
-    console.log('🏓 PING - sending PONG');
+    console.log('PING - sending PONG');
     return res.json({ type: InteractionResponseType.PONG });
   }
 
@@ -84,13 +84,13 @@ app.post('/interactions', (req, res) => {
     const { name } = data;
     const userId = member.user.id;
 
-    console.log(`🎯 Command: /${name} from user ${userId}`);
+    console.log(`Command: /${name} from user ${userId}`);
 
     if (name === 'potd') {
       handlePotdCommand(userId)
         .then(pokemon => {
           const embed = createPokemonEmbed(pokemon);
-          console.log(`✅ Responding with: ${pokemon.name}`);
+          console.log(`Responding with: ${pokemon.name}`);
 
           return res.json({
             type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
@@ -100,11 +100,11 @@ app.post('/interactions', (req, res) => {
           });
         })
         .catch(error => {
-          console.error('❌ Error fetching pokemon:', error.message);
+          console.error('Error fetching pokemon:', error.message);
           return res.json({
             type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
             data: {
-              content: '❌ Failed to fetch your Pokémon of the day. Please try again later.',
+              content: 'Failed to fetch your Pokémon of the day. Please try again later.',
               flags: 64
             }
           });
@@ -113,7 +113,7 @@ app.post('/interactions', (req, res) => {
     }
   }
 
-  console.log('⚠️ Unhandled interaction');
+  console.log('Unhandled interaction');
   return res.status(400).json({ error: 'Unknown interaction type' });
 });
 
@@ -122,7 +122,7 @@ app.post('/interactions', (req, res) => {
  */
 async function start() {
   try {
-    console.log('\n🔌 Starting Pokemon Bot...\n');
+    console.log('\n Starting Pokemon Bot...\n');
     console.log('Configuration:');
     console.log('  Discord App ID:', process.env.DISCORD_APP_ID ? '✓' : '✗');
     console.log('  Discord Token:', process.env.DISCORD_TOKEN ? '✓' : '✗');
@@ -136,11 +136,11 @@ async function start() {
 
     // Start Express server
     app.listen(PORT, () => {
-      console.log(`\n✅ Bot ready on port ${PORT}`);
-      console.log(`📡 Endpoint: https://pokemon.sheep-sloth.org/interactions\n`);
+      console.log(`\n Bot ready on port ${PORT}`);
+      console.log(`Endpoint: https://pokemon.sheep-sloth.org/interactions\n`);
     });
   } catch (error) {
-    console.error('❌ Startup error:', error.message);
+    console.error(' Startup error:', error.message);
     process.exit(1);
   }
 }
