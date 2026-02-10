@@ -1,7 +1,7 @@
 /**
  * Create a Discord embed response for Pokemon
  */
-function createPokemonEmbed(pokemon) {
+function createPokemonEmbed(pokemon, userId) {
 
     const displayName = pokemon.isShiny 
         ? `✨ ${pokemon.name} ✨` 
