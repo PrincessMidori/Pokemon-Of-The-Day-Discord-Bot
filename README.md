@@ -25,4 +25,5 @@ Outputs random, individual Pokémon for user performing `/potd` command and cach
 * [Pokemon API](https://pokeapi.co/)
 * [Node.js](https://nodejs.org/en)
 * [Discord Dev](https://docs.discord.com/developers/intro)
+* [Redis](https://redis.io/)
 * [Self hosted on Homelab with reverse proxy](https://en.wikipedia.org/wiki/Home_server)  
