@@ -7,10 +7,12 @@ function createPokemonEmbed(pokemon, userId) {
         ? `✨ ${pokemon.name} ✨` 
         : pokemon.name;
 
+    const user = userId === '138305948530769920' ? `🎂 Birthday Girl 🎉` : `<@${userId}>`
+
     return {
         color: pokemon.isShiny ? 0xF1C40F : 0xA8FF3D,
         title: `Pokémon of the Day: ${displayName}`,
-        description: `**Trainer:** <@${userId}>`,
+        description: `**Trainer:** ${user}`,
         image: { url: pokemon.imageUrl },
         fields: [
             { name: '🔢 ID', value: `#${pokemon.id}`, inline: true },
