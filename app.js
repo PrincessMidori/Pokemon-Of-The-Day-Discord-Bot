@@ -11,145 +11,95 @@ const { registerCommands, handlePotdCommand } = require('./commands');
 const cacheService = require('./services/cacheService');
 const { createPokemonEmbed } = require('./utils');
 
-async function sendFollowupMessage(interactionToken, message) {
-  const url = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_APP_ID}/${interactionToken}`;
-  return axios.post(url, message);
+/**
+ * Updates the initial thinking state with the actual response
+ */
+async function updateInteractionResponse(interactionToken, body) {
+  const url = `https://discord.com/api/v10/webhooks/${process.env.DISCORD_APP_ID}/${interactionToken}/messages/@original`;
+  return axios.patch(url, body);
 }
-
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware to capture raw body as string
 app.use(express.json({
   verify: (req, res, buf) => {
     req.rawBody = buf.toString('utf8');
   }
 }));
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
-});
-
-// Manually verify Discord signature
 function verifyDiscordSignature(req) {
   const signature = req.get('X-Signature-Ed25519');
   const timestamp = req.get('X-Signature-Timestamp');
   const rawBody = req.rawBody;
 
-  console.log('Verifying signature...');
-
-  if (!signature || !timestamp || !rawBody) {
-    console.log('Missing signature, timestamp, or body');
-    return false;
-  }
+  if (!signature || !timestamp || !rawBody) return false;
 
   try {
-    const isValid = nacl.sign.detached.verify(
+    return nacl.sign.detached.verify(
       Buffer.from(timestamp + rawBody),
       Buffer.from(signature, 'hex'),
       Buffer.from(process.env.DISCORD_PUBLIC_KEY, 'hex')
     );
-
-    if (isValid) {
-      console.log('Signature valid');
-    } else {
-      console.log('Signature invalid');
-    }
-
-    return isValid;
   } catch (error) {
-    console.error('Verification error:', error.message);
     return false;
   }
 }
 
-// Interactions endpoint
 app.post('/interactions', (req, res) => {
-  console.log('\n POST /interactions received');
-
-  // Verify signature first
   if (!verifyDiscordSignature(req)) {
-    console.log('Rejecting request - signature verification failed');
     return res.status(401).json({ error: 'Invalid signature' });
   }
 
-  // Body is already parsed by express.json middleware
-  const { type, data, member } = req.body;
+  const { type, data, member, user, token } = req.body;
 
-  console.log('Processing interaction type:', type);
-
-  // Handle ping
   if (type === InteractionType.PING) {
-    console.log('PING - sending PONG');
     return res.json({ type: InteractionResponseType.PONG });
   }
 
-  // Handle commands
   if (type === InteractionType.APPLICATION_COMMAND) {
     const { name } = data;
-    const userId = member.user.id;
+    // Fallback for DM interactions where 'member' is undefined
+    const userData = member ? member.user : user;
+    const userId = userData.id;
 
-    console.log(`Command: /${name} from user ${userId}`);
-
-if (name === 'potd') {
-  // Acknowledge immediately
-  res.json({
-    type: InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
-  });
-
-  // Continue processing asynchronously
-  handlePotdCommand(userId)
-    .then(async pokemon => {
-      const embed = createPokemonEmbed(pokemon, userId);
-
-      // Send follow-up message
-      await sendFollowupMessage(req.body.token, {
-        embeds: [embed]
+    if (name === 'potd') {
+      // 1. Respond immediately to avoid the 3-second timeout
+      res.json({
+        type: InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE
       });
-    })
-    .catch(async error => {
-      console.error('Error fetching pokemon:', error.message);
 
-      await sendFollowupMessage(req.body.token, {
-        content: 'Failed to fetch your Pokémon of the day. Please try again later.',
-        flags: 64
-      });
-    });
-
-  return;
+      // 2. Handle the logic asynchronously
+      handlePotdCommand(userId)
+        .then(async (pokemon) => {
+          const embed = createPokemonEmbed(pokemon, userId);
+          await updateInteractionResponse(token, { embeds: [embed] });
+        })
+        .catch(async (error) => {
+          console.error('Error processing potd command:', error.message);
+          await updateInteractionResponse(token, {
+            content: 'An error occurred while fetching your Pokémon of the day.',
+            flags: 64
+          });
+        });
+      return;
+    }
   }
-}
 
-  console.log('Unhandled interaction');
   return res.status(400).json({ error: 'Unknown interaction type' });
 });
 
-/**
- * Start server
- */
 async function start() {
   try {
-    console.log('\n Starting Pokemon Bot...\n');
-    console.log('Configuration:');
-    console.log('  Discord App ID:', process.env.DISCORD_APP_ID ? '✓' : '✗');
-    console.log('  Discord Token:', process.env.DISCORD_TOKEN ? '✓' : '✗');
-    console.log('  Discord Public Key:', process.env.DISCORD_PUBLIC_KEY ? '✓' : '✗');
-
-    // Initialize Redis
+    console.log('Starting application...');
     await cacheService.initializeRedis();
-
-    // Register commands
     await registerCommands();
 
-    // Start Express server
     app.listen(PORT, () => {
-      console.log(`\n Bot ready on port ${PORT}`);
-      console.log(`Endpoint: https://pokemon.sheep-sloth.org/interactions\n`);
+      console.log(`Server listening on port ${PORT}`);
     });
   } catch (error) {
-    console.error(' Startup error:', error.message);
+    console.error('Startup error:', error.message);
     process.exit(1);
   }
 }
