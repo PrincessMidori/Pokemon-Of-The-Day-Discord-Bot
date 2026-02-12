@@ -2,12 +2,12 @@ const axios = require('axios');
 
 const POKEAPI_URL = 'https://pokeapi.co/api/v2';
 
-/**
- * Get a random Pokémon by ID (1-898 are Generation 1-8)
- */
+const TOTAL_POKEMON_COUNT = 1025;
+const SHINY_CHANCE = 1 / 648;
+
 async function getRandomPokemon() {
     try {
-        const randomId = Math.floor(Math.random() * 898) + 1;
+        const randomId = Math.floor(Math.random() * TOTAL_POKEMON_COUNT) + 1;
         const response = await axios.get(`${POKEAPI_URL}/pokemon/${randomId}`);
         return formatPokemonData(response.data);
     } catch (error) {
@@ -16,11 +16,8 @@ async function getRandomPokemon() {
     }
 }
 
-/**
- * Format the API response into a user-friendly object
- */
 function formatPokemonData(data) {
-    const isShiny = Math.random() < (1 / 648);
+    const isShiny = Math.random() < SHINY_CHANCE;
     const hpStat = data.stats.find(s => s.stat.name === 'hp');
     const attackStat = data.stats.find(s => s.stat.name === 'attack');
     const defenseStat = data.stats.find(s => s.stat.name === 'defense');
