@@ -23,7 +23,6 @@ services:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - DISCORD_PUBLIC_KEY=${DISCORD_PUBLIC_KEY}
       - DISCORD_APP_ID=${DISCORD_APP_ID}
-      - DISCORD_GUILD_ID=${DISCORD_GUILD_ID}
       - REDIS_URL=redis://redis:6379
       - NODE_ENV=production
       - PORT=3000
