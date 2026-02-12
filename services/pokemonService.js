@@ -3,7 +3,7 @@ const axios = require('axios');
 const POKEAPI_URL = 'https://pokeapi.co/api/v2';
 
 const TOTAL_POKEMON_COUNT = 1025;
-const SHINY_CHANCE = 1 / 648;
+const SHINY_CHANCE = 1 / 300;
 
 async function getRandomPokemon() {
     try {
