@@ -15,7 +15,7 @@ const commands = [
  * Register commands with Discord
  */
 async function registerCommands() {
-    const rest = new REST({ version: '9' }).setToken(process.env.DISCORD_TOKEN);
+    const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
     try {
         console.log('Registering slash commands...');
