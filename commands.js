@@ -3,7 +3,7 @@ const { Routes } = require('discord-api-types/v9');
 const pokemonService = require('./services/pokemonService');
 const cacheService = require('./services/cacheService');
 
-// Define the /potd command
+// Define commands
 const commands = [
     {
         name: 'potd',
@@ -21,14 +21,11 @@ async function registerCommands() {
         console.log('Registering slash commands...');
 
         await rest.put(
-            Routes.applicationGuildCommands(
-                process.env.DISCORD_APP_ID,
-                process.env.DISCORD_GUILD_ID
-            ),
+            Routes.applicationCommands(process.env.DISCORD_APP_ID),
             { body: commands }
         );
 
-        console.log('✓ Slash commands registered successfully');
+        console.log('✓ Global slash commands registered successfully');
     } catch (error) {
         console.error('Error registering commands:', error);
     }
