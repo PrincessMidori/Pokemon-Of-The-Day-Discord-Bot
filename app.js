@@ -19,8 +19,6 @@ async function updateInteractionResponse(interactionToken, body) {
   return axios.patch(url, body);
 }
 
-// test comment
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
