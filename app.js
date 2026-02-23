@@ -35,7 +35,7 @@ client.on('interactionCreate', async (interaction) => {
     } catch (error) {
       console.error('Error:', error.message);
       
-      // If the interaction was already deferred, we must edit the reply
+      // If the interaction was already deferred
       const errorPayload = { 
         content: 'An error occured while fetching Pokémon.',
         ephemeral: true 
