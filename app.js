@@ -1,13 +1,16 @@
-const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, EmbedBuilder, Partials } = require('discord.js');
 require('dotenv').config();
 
 const { registerCommands, handlePotdCommand } = require('./commands');
 const cacheService = require('./services/cacheService');
 const { createPokemonEmbed } = require('./utils');
 
-// Initialising client
 const client = new Client({ 
-  intents: [GatewayIntentBits.Guilds] 
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.DirectMessages // Allows the bot to work in DMs
+  ],
+  partials: [Partials.Channel] // Necessary for DM support in v14
 });
 
 client.once('ready', () => {
@@ -15,29 +18,23 @@ client.once('ready', () => {
 });
 
 client.on('interactionCreate', async (interaction) => {
-  // Interactions type - chat commands
   if (!interaction.isChatInputCommand()) return;
 
-  const { commandName, user, token } = interaction;
+  const { commandName, user } = interaction;
 
   if (commandName === 'potd') {
     try {
-      // 1. Instantly acknowledge the command to prevent the 3s timeout
       await interaction.deferReply();
 
-      // 2. Process logic
       const pokemon = await handlePotdCommand(user.id);
-      
-      // 3. Update the response with the actual Pokemon
       const embed = createPokemonEmbed(pokemon, user.id);
-      your
+      
       await interaction.editReply({ embeds: [embed] });
     } catch (error) {
       console.error('Error:', error.message);
       
-      // If the interaction was already deferred
       const errorPayload = { 
-        content: 'An error occured while fetching Pokémon.',
+        content: 'An error occurred while fetching Pokémon.',
         ephemeral: true 
       };
 
@@ -53,12 +50,8 @@ client.on('interactionCreate', async (interaction) => {
 async function start() {
   try {
     console.log('Starting Pokemon of the Day Discord Bot');
-    
-    // Initialize Redis and register commands
     await cacheService.initializeRedis();
     await registerCommands();
-
-    // Log in using your DISCORD_TOKEN
     await client.login(process.env.DISCORD_TOKEN);
   } catch (error) {
     console.error('Startup error:', error.message);
