@@ -1,9 +1,7 @@
-const { REST } = require('@discordjs/rest');
-const { Routes } = require('discord-api-types/v9');
+const { REST, Routes } = require('discord.js');
 const pokemonService = require('./services/pokemonService');
 const cacheService = require('./services/cacheService');
 
-// Define commands
 const commands = [
     {
         name: 'potd',
@@ -11,9 +9,6 @@ const commands = [
     }
 ];
 
-/**
- * Register commands with Discord
- */
 async function registerCommands() {
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
@@ -31,19 +26,13 @@ async function registerCommands() {
     }
 }
 
-/**
- * Handle the /potd command
- */
 async function handlePotdCommand(userId) {
     try {
-        // Check if user already has a Pokemon for today
         let pokemon = await cacheService.getUserPokemonOfDay(userId);
 
         if (!pokemon) {
             console.log(`Generating new Pokemon for user ${userId}`);
-            // Get a new random Pokemon
             pokemon = await pokemonService.getRandomPokemon();
-            // Cache it for 24 hours
             await cacheService.setUserPokemonOfDay(userId, pokemon);
         } else {
             console.log(`User ${userId} already has a Pokemon for today`);
