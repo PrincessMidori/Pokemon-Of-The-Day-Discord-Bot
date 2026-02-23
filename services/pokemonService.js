@@ -39,7 +39,6 @@ function formatPokemonData(data) {
     const levelUpMoves = data.moves
         .filter(m => m.version_group_details.some(d => d.move_learn_method.name === 'level-up'))
         .map(m => {
-            // We find the highest level assigned to this move to find the strongest version
             const details = m.version_group_details.find(d => d.move_learn_method.name === 'level-up');
             return { 
                 name: m.move.name, 
@@ -53,7 +52,7 @@ function formatPokemonData(data) {
         .slice(0, 8)
         .map(m => m.name);
 
-    // Graceful Fallback: If no level-up moves exist, take the first 8 available
+    // If no level-up moves exist, take the first 8 available
     const finalMovesList = selectedMoves.length > 0 
         ? selectedMoves.join(', ') 
         : data.moves.slice(0, 8).map(m => m.move.name).join(', ');
