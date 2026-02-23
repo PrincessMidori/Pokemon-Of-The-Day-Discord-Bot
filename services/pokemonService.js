@@ -7,7 +7,6 @@ async function getRandomPokemon() {
     try {
         const randomId = Math.floor(Math.random() * TOTAL_POKEMON_COUNT) + 1;
         
-        // Using built-in fetch instead of axios
         const response = await fetch(`${POKEAPI_URL}/pokemon/${randomId}`);
         
         if (!response.ok) {
