@@ -17,7 +17,7 @@ services:
   pokemon-bot:
     build: .
     container_name: pokemon-bot-app
-      environment:
+    environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - DISCORD_PUBLIC_KEY=${DISCORD_PUBLIC_KEY}
       - DISCORD_APP_ID=${DISCORD_APP_ID}
