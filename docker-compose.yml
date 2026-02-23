@@ -17,25 +17,16 @@ services:
   pokemon-bot:
     build: .
     container_name: pokemon-bot-app
-    ports:
-      - "3000:3000"
-    environment:
+      environment:
       - DISCORD_TOKEN=${DISCORD_TOKEN}
       - DISCORD_PUBLIC_KEY=${DISCORD_PUBLIC_KEY}
       - DISCORD_APP_ID=${DISCORD_APP_ID}
       - REDIS_URL=redis://redis:6379
       - NODE_ENV=production
-      - PORT=3000
     depends_on:
       redis:
         condition: service_healthy
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
 volumes:
   redis_data:
