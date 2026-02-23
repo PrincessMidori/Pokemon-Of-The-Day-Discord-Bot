@@ -3,7 +3,7 @@ const POKEAPI_URL = 'https://pokeapi.co/api/v2';
 const TOTAL_POKEMON_COUNT = 1025;
 const SHINY_CHANCE = 1 / 300;
 
-async function getRandomPokemon() {
+async function getRandomPokemon(debug = false) {
     try {
         const randomId = Math.floor(Math.random() * TOTAL_POKEMON_COUNT) + 1;
         
@@ -21,13 +21,18 @@ async function getRandomPokemon() {
     }
 }
 
-function formatPokemonData(data) {
+function formatPokemonData(data, debug = false) {
     const isShiny = Math.random() < SHINY_CHANCE;
     const getStat = (name) => data.stats.find(s => s.stat.name === name)?.base_stat || 0;
 
     let displayName = data.name.charAt(0).toUpperCase() + data.name.slice(1);
     if (isShiny) {
         displayName = `Shiny ${displayName}`;
+    }
+
+    if (debug) {
+        isShiny = true;
+        displayName = `DEBUG MODE: Shiny ${displayName}`;
     }
 
     const imageUrl = isShiny 

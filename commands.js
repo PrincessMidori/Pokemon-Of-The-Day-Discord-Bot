@@ -6,6 +6,10 @@ const commands = [
     {
         name: 'potd',
         description: 'Get your Pokémon of the day!'
+    },
+    {
+        name: 'potd-debug-shiny',
+        description: 'Debug command: display random Shiny'
     }
 ];
 
