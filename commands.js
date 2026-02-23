@@ -9,7 +9,8 @@ const commands = [
     },
     {
         name: 'potd-debug-shiny',
-        description: 'Debug command: display random Shiny'
+        description: 'Debug command: display random Shiny',
+        default_member_permissions: "0"
     }
 ];
 
@@ -49,8 +50,14 @@ async function handlePotdCommand(userId) {
     }
 }
 
+async function handleDebugShinyCommand() {
+    const debug = true;
+    return await pokemonService.getRandomPokemon(debug);
+}
+
 module.exports = {
     commands,
     registerCommands,
-    handlePotdCommand
+    handlePotdCommand,
+    handleDebugShinyCommand
 };
