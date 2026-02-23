@@ -23,8 +23,6 @@ Outputs random, individual Pokémon for user performing `/potd` command and cach
 
 * [Docker](https://www.docker.com/)
 * [Pokemon API](https://pokeapi.co/)
-* [Axios](https://axios-http.com/docs/intro)
-* [Node.js](https://nodejs.org/en)
-* [Discord API](https://docs.discord.com/developers/intro)
+* [Discord.js](https://discord.js.org)
 * [Redis](https://redis.io/)
 * [Self hosted on Homelab with reverse proxy](https://en.wikipedia.org/wiki/Home_server)  
