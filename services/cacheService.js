@@ -30,7 +30,7 @@ async function getUserPokemonOfDay(userId) {
 }
 
 /**
- * Set user's Pokemon of the day (expires after 24 hours)
+ * Set user's Pokemon of the day (expires after 12 hours)
  */
 async function setUserPokemonOfDay(userId, pokemonData) {
     try {
