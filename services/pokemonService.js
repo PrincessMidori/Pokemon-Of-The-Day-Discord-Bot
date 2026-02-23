@@ -1,5 +1,3 @@
-const axios = require('axios');
-
 const POKEAPI_URL = 'https://pokeapi.co/api/v2';
 
 const TOTAL_POKEMON_COUNT = 1025;
@@ -8,8 +6,16 @@ const SHINY_CHANCE = 1 / 300;
 async function getRandomPokemon() {
     try {
         const randomId = Math.floor(Math.random() * TOTAL_POKEMON_COUNT) + 1;
-        const response = await axios.get(`${POKEAPI_URL}/pokemon/${randomId}`);
-        return formatPokemonData(response.data);
+        
+        // Using built-in fetch instead of axios
+        const response = await fetch(`${POKEAPI_URL}/pokemon/${randomId}`);
+        
+        if (!response.ok) {
+            throw new Error(`PokéAPI responded with status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        return formatPokemonData(data);
     } catch (error) {
         console.error('Error fetching Pokemon:', error.message);
         throw new Error('Failed to fetch Pokemon data');
@@ -18,15 +24,9 @@ async function getRandomPokemon() {
 
 function formatPokemonData(data) {
     const isShiny = Math.random() < SHINY_CHANCE;
-    const hpStat = data.stats.find(s => s.stat.name === 'hp');
-    const attackStat = data.stats.find(s => s.stat.name === 'attack');
-    const defenseStat = data.stats.find(s => s.stat.name === 'defense');
-    const spAtkStat = data.stats.find(s => s.stat.name === 'special-attack');
-    const spDefStat = data.stats.find(s => s.stat.name === 'special-defense');
-    const speedStat = data.stats.find(s => s.stat.name === 'speed');
+    const getStat = (name) => data.stats.find(s => s.stat.name === name)?.base_stat || 0;
 
     let displayName = data.name.charAt(0).toUpperCase() + data.name.slice(1);
-
     if (isShiny) {
         displayName = `Shiny ${displayName}`;
     }
@@ -35,19 +35,43 @@ function formatPokemonData(data) {
         ? (data.sprites.other['official-artwork'].front_shiny || data.sprites.front_shiny)
         : (data.sprites.other['official-artwork'].front_default || data.sprites.front_default);
 
+    
+    // Filter moves learned by level-up
+    const levelUpMoves = data.moves
+        .filter(m => m.version_group_details.some(d => d.move_learn_method.name === 'level-up'))
+        .map(m => {
+            // We find the highest level assigned to this move to find the strongest version
+            const details = m.version_group_details.find(d => d.move_learn_method.name === 'level-up');
+            return { 
+                name: m.move.name, 
+                level: details ? details.level_learned_at : 0 
+            };
+        });
+
+    // Sort by level descending (high-level moves first) and take the top 8
+    const selectedMoves = levelUpMoves
+        .sort((a, b) => b.level - a.level)
+        .slice(0, 8)
+        .map(m => m.name);
+
+    // Graceful Fallback: If no level-up moves exist, take the first 8 available
+    const finalMovesList = selectedMoves.length > 0 
+        ? selectedMoves.join(', ') 
+        : data.moves.slice(0, 8).map(m => m.move.name).join(', ');
+
     return {
         id: data.id,
         name: displayName,
         imageUrl: imageUrl,
         isShiny: isShiny,
         types: data.types.map(t => t.type.name).join(', '),
-        hp: hpStat ? hpStat.base_stat : 0,
-        attack: attackStat ? attackStat.base_stat : 0,
-        defense: defenseStat ? defenseStat.base_stat : 0,
-        spAtk: spAtkStat ? spAtkStat.base_stat : 0,
-        spDef: spDefStat ? spDefStat.base_stat : 0,
-        speed: speedStat ? speedStat.base_stat : 0,
-        moves: data.moves.slice(0, 4).map(m => m.move.name).join(', '),
+        hp: getStat('hp'),
+        attack: getStat('attack'),
+        defense: getStat('defense'),
+        spAtk: getStat('special-attack'),
+        spDef: getStat('special-defense'),
+        speed: getStat('speed'),
+        moves: finalMovesList || 'None',
         height: (data.height / 10).toFixed(1) + 'm',
         weight: (data.weight / 10).toFixed(1) + 'kg'
     };
