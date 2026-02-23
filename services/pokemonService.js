@@ -3,7 +3,7 @@ const POKEAPI_URL = 'https://pokeapi.co/api/v2';
 const TOTAL_POKEMON_COUNT = 1025;
 const SHINY_CHANCE = 1 / 300;
 
-async function getRandomPokemon(debug = false) {
+async function getRandomPokemon({ debug = false } = {}) {
     try {
         const randomId = Math.floor(Math.random() * TOTAL_POKEMON_COUNT) + 1;
         
@@ -14,7 +14,7 @@ async function getRandomPokemon(debug = false) {
         }
         
         const data = await response.json();
-        return formatPokemonData(data);
+        return formatPokemonData(data, debug);
     } catch (error) {
         console.error('Error fetching Pokemon:', error.message);
         throw new Error('Failed to fetch Pokemon data');
@@ -22,18 +22,20 @@ async function getRandomPokemon(debug = false) {
 }
 
 function formatPokemonData(data, debug = false) {
-    const isShiny = Math.random() < SHINY_CHANCE;
+    let isShiny = Math.random() < SHINY_CHANCE;
     const getStat = (name) => data.stats.find(s => s.stat.name === name)?.base_stat || 0;
+
+    // DEBUG: forced Shiny Pokemon
+    if (debug) {
+        isShiny = true;
+    }
 
     let displayName = data.name.charAt(0).toUpperCase() + data.name.slice(1);
     if (isShiny) {
         displayName = `Shiny ${displayName}`;
     }
 
-    if (debug) {
-        isShiny = true;
-        displayName = `DEBUG MODE: Shiny ${displayName}`;
-    }
+
 
     const imageUrl = isShiny 
         ? (data.sprites.other['official-artwork'].front_shiny || data.sprites.front_shiny)

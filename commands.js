@@ -51,8 +51,7 @@ async function handlePotdCommand(userId) {
 }
 
 async function handleDebugShinyCommand() {
-    const debug = true;
-    return await pokemonService.getRandomPokemon(debug);
+return await pokemonService.getRandomPokemon({ debug: true });
 }
 
 module.exports = {
