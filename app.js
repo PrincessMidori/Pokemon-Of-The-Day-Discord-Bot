@@ -3,7 +3,7 @@ const { Client, GatewayIntentBits, Partials,
 require('dotenv').config();
 
 const { registerCommands, handlePotdCommand, handleDebugShinyCommand } = require('./commands');
-const cacheService = require('./services/cacheService');
+const dbService = require('./services/dbService');
 const { createPokemonEmbed } = require('./utils');
 
 const client = new Client({ 
@@ -11,7 +11,7 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.DirectMessages
   ],
-  partials: [Partials.Channel] // Necessary for DM support in v14
+  partials: [Partials.Channel]
 });
 
 client.once('ready', () => {
@@ -24,20 +24,35 @@ client.on('interactionCreate', async (interaction) => {
   if (interaction.isChatInputCommand()) {
     const { commandName, user } = interaction;
 
+    // potd command
     if (commandName === 'potd') {
       try {
+        const guildName = interaction.guild ? interaction.guild.name : 'Direct Message';
+        const result = await handlePotdCommand(interaction.user, guildName);
+
+        // User has cooldown
+        if (result.onCooldown) {
+          console.log(`POTD: User ${user.tag} in ${guildName} used /potd command but they still have cooldown of ${result.timeLeft}`)
+          return await interaction.reply({
+            content: `You already rolled for today. Time remaining until next roll: **${result.timeLeft}**`,
+            ephemeral: true
+          });
+        }
+
+        // User can roll for a new Pokemon
         await interaction.deferReply();
-        const pokemon = await handlePotdCommand(user.id);
-        const embed = createPokemonEmbed(pokemon, user.id);
+        const embed = createPokemonEmbed(result.pokemon, interaction.user.id);
         await interaction.editReply({ embeds: [embed] });
+
       } catch (error) {
-        console.error('Error:', error.message);
-        await interaction.editReply({ content: 'An error occurred.', ephemeral: true });
+        console.error(error);
+        await interaction.editReply({ content: 'Something went wrong. Please contact my creator.', ephemeral: true });
       }
     }
 
+    // potd-debug-shiny command
     if (commandName === 'potd-debug-shiny') {
-      console.log(`User ${user.tag} (${user.id}) initiated /potd-debug-shiny`);
+      console.log(`DEBUG: User ${user.tag} (${user.id}) initiated /potd-debug-shiny`);
 
       const modal = new ModalBuilder()
         .setCustomId('debug_modal')
@@ -89,7 +104,7 @@ client.on('interactionCreate', async (interaction) => {
 async function start() {
   try {
     console.log('Starting Pokemon of the Day Discord Bot');
-    await cacheService.initializeRedis();
+    await dbService.initialiseDatabase();
     await registerCommands();
     await client.login(process.env.DISCORD_TOKEN);
   } catch (error) {

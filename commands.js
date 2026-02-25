@@ -1,6 +1,6 @@
 const { REST, Routes } = require('discord.js');
 const pokemonService = require('./services/pokemonService');
-const cacheService = require('./services/cacheService');
+const dbService = require('./services/dbService');
 
 const commands = [
     {
@@ -31,21 +31,34 @@ async function registerCommands() {
     }
 }
 
-async function handlePotdCommand(userId) {
+async function handlePotdCommand(userId, guildName) {
     try {
-        let pokemon = await cacheService.getUserPokemonOfDay(userId);
+        const recentEntry = await dbService.getUserRecentPokemon(user.id);
+        const cooldown = 12 * 60 * 60 * 1000; // 12h in milliseconds
+        const now = Date.now();
 
-        if (!pokemon) {
-            console.log(`Generating new Pokemon for user ${userId}`);
-            pokemon = await pokemonService.getRandomPokemon();
-            await cacheService.setUserPokemonOfDay(userId, pokemon);
-        } else {
-            console.log(`User ${userId} already has a Pokemon for today`);
+        if (recentEntry) {
+            const recentTimestamp = new Date(recentEntry.timestamp).getTime();
+            const timeElapsed = now - recentTimestamp;
+
+            if (timeElapsed < cooldown) {
+                const timeRemaining = cooldown - timeElapsed;
+
+                const totalMinutes = Math.floor(timeRemaining / 60000);
+                const hours = Math.floor(totalMinutes / 60);
+                const minutes = totalMinutes % 60;
+
+                return { onCooldown: true, timeLeft: `${hours}h ${minutes}m` };
+            }
         }
 
-        return pokemon;
+        const pokemon = await pokemonService.getRandomPokemon();
+        await dbService.addUserPokemon(user, pokemon, guildName);
+
+        return { onCooldown: false, pokemon };
+        
     } catch (error) {
-        console.error('Error handling POTD command:', error);
+        console.error(error);
         throw error;
     }
 }
