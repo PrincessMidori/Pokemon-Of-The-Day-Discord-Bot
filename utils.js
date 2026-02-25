@@ -1,14 +1,14 @@
-/**
- * Create a Discord embed response for Pokemon
- */
-function createPokemonEmbed(pokemon, userId) {
+
+const trainer = `<@${userId}>`;
+
+// potd command result
+function createPotdEmbed(pokemon, userId) {
 
     const displayName = pokemon.isShiny 
         ? `✨ ${pokemon.name} ✨` 
         : pokemon.name;
 
     // const trainer = userId === '138305948530769920' ? `🎂 Birthday Girl 🎉` : `<@${userId}>`
-    const trainer = `<@${userId}>`;
 
     return {
         color: pokemon.isShiny ? 0xF1C40F : 0xA8FF3D,
@@ -33,6 +33,28 @@ function createPokemonEmbed(pokemon, userId) {
     };
 }
 
+// Pokedex command result
+function createPokedexEmbed(user, collection) {
+    const displayList = collection.map(entry => {
+        const spitePlaceholder = entry.pokemon.isShiny ? '✨' : '🔘';
+        return `${spitePlaceholder} ${entry.pokemon.name}`;
+    }).join(`, \n`);
+
+return {
+        color: 0x9B59B6, // Purple
+        title: `${user.username}'s Pokedex`,
+        description: displayList.length > 4000 
+            ? displayList.substring(0, 3997) + '...' 
+            : displayList,
+        fields: [
+            { name: 'Total Collected:', value: `${collection.length} Pokémon`, inline: true }
+        ],
+        footer: { text: `${1025 - collection.length} remaining.` },
+        timestamp: new Date().toISOString()
+    };
+}
+
 module.exports = {
-    createPokemonEmbed
+    createPotdEmbed,
+    createPokedexEmbed
 };

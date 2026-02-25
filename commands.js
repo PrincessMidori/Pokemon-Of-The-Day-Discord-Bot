@@ -8,6 +8,10 @@ const commands = [
         description: 'Get your Pokémon of the day!'
     },
     {
+        name: 'potd-pokedex',
+        description: 'Display all pokemons you have caught so far'
+    },
+    {
         name: 'potd-debug-shiny',
         description: 'Debug command: display random Shiny',
         default_member_permissions: "0"
@@ -31,9 +35,10 @@ async function registerCommands() {
     }
 }
 
+// potd command
 async function handlePotdCommand(userId, guildName) {
     try {
-        const recentEntry = await dbService.getUserRecentPokemon(user.id);
+        const recentEntry = await dbService.getUserRecentPokemon(userId);
         const cooldown = 12 * 60 * 60 * 1000; // 12h in milliseconds
         const now = Date.now();
 
@@ -56,20 +61,32 @@ async function handlePotdCommand(userId, guildName) {
         await dbService.addUserPokemon(user, pokemon, guildName);
 
         return { onCooldown: false, pokemon };
-        
+
     } catch (error) {
         console.error(error);
         throw error;
     }
 }
 
+// potd-debug-shiny command
 async function handleDebugShinyCommand() {
 return await pokemonService.getRandomPokemon({ debug: true });
+}
+
+// potd-pokedex command
+async function handlePokedexCommand(userId) {
+    try {
+       return await dbService.getUserAllPokemons(userId);
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
 }
 
 module.exports = {
     commands,
     registerCommands,
     handlePotdCommand,
-    handleDebugShinyCommand
+    handleDebugShinyCommand,
+    handlePokedexCommand
 };

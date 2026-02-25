@@ -2,9 +2,9 @@ const { Client, GatewayIntentBits, Partials,
   ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
 require('dotenv').config();
 
-const { registerCommands, handlePotdCommand, handleDebugShinyCommand } = require('./commands');
+const { registerCommands, handlePotdCommand, handleDebugShinyCommand, handlePokedexCommand } = require('./commands');
 const dbService = require('./services/dbService');
-const { createPokemonEmbed } = require('./utils');
+const { createPotdEmbed, createPokedexEmbed } = require('./utils');
 
 const client = new Client({ 
   intents: [
@@ -40,8 +40,9 @@ client.on('interactionCreate', async (interaction) => {
         }
 
         // User can roll for a new Pokemon
+        console.log(`POTD: User ${user.tag} in ${guildName} used /potd command and got ${pokemon.name} at ${Date.now()}`)
         await interaction.deferReply();
-        const embed = createPokemonEmbed(result.pokemon, interaction.user.id);
+        const embed = createPotdEmbed(result.pokemon, interaction.user.id);
         await interaction.editReply({ embeds: [embed] });
 
       } catch (error) {
@@ -91,7 +92,7 @@ client.on('interactionCreate', async (interaction) => {
       try {
         await interaction.deferReply(); 
         const pokemon = await handleDebugShinyCommand();
-        const embed = createPokemonEmbed(pokemon, user.id);
+        const embed = createPotdEmbed(pokemon, user.id);
         await interaction.editReply({ embeds: [embed] });
       } catch (error) {
         console.error('Debug Error:', error.message);
@@ -99,7 +100,28 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
   }
-});
+
+      // potd-pokedex command
+    if (commandName === 'potd-pokedex') {
+      try {
+        await interaction.deferReply();
+        const collection = await dbService.getUserAllPokemons(user.id);
+
+        if (collection.length === 0) {
+          return await interaction.reply({ 
+          content: 'Your Pokédex is empty. You can expand it by using /potd command', 
+          ephemeral: true 
+          });
+      }
+
+      const embed = createPokedexEmbed(user, collection);
+      await interaction.editReply({ embeds: [embed]});
+
+    } catch (error) {
+      console.log(error);
+      await interaction.editReply('Something went wrong. Please contact my creator');
+    }
+}
 
 async function start() {
   try {
