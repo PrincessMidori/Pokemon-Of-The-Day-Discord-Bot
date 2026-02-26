@@ -14,8 +14,8 @@ const client = new Client({
   partials: [Partials.Channel]
 });
 
-client.once('ready', () => {
-  console.log(`Initialising client ${client.user.tag}`);
+client.once('clientReady', (c) => {
+  console.log(`Initialising client ${c.user.tag}`);
 });
 
 client.on('interactionCreate', async (interaction) => {
