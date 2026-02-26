@@ -69,11 +69,21 @@ async function getEventPullsCount(userId) {
     }
 }
 
+async function getTotalCatchCount() {
+    try {
+        return await dbEntry.countDocuments();
+    } catch (error) {
+        console.error('[✗] getTotalCatchCount Error:', error);
+        return 0;
+    }
+}
+
 
 module.exports = {
     initializeDatabase,
     addUserPokemon,
     getUserRecentPokemon,
     getUserAllPokemons,
-    getEventPullsCount // Event
+    getEventPullsCount, // Event
+    getTotalCatchCount
 }
