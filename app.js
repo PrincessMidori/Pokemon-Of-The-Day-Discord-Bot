@@ -1,5 +1,15 @@
-const { Client, GatewayIntentBits, Partials, 
-  ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require('discord.js');
+const { 
+  Client, 
+  GatewayIntentBits, 
+  Partials, 
+  ModalBuilder, 
+  TextInputBuilder, 
+  TextInputStyle, 
+  ActionRowBuilder, 
+  ButtonBuilder, 
+  ButtonStyle, 
+  ComponentType 
+} = require('discord.js');
 require('dotenv').config();
 
 const { registerCommands, handlePotdCommand, handleDebugShinyCommand, handlePokedexCommand } = require('./commands');
@@ -67,27 +77,50 @@ client.on('interactionCreate', async (interaction) => {
     }
 
     // potd-pokedex command
-    if (commandName === 'potd-pokedex') {
-      try {
-        const collection = await handlePokedexCommand(user);
+if (commandName === 'potd-pokedex') {
+    const collection = await handlePokedexCommand(user);
+    if (collection.length === 0) return interaction.reply({ content: 'Your Pokedex is empty.', ephemeral: true });
 
-        if (collection.length === 0) {
-          return await interaction.reply({ 
-            content: 'Your Pokédex is empty. You can expand it by using /potd command', 
-            ephemeral: true 
-          });
-        }
+    let currentPage = 0;
 
-        await interaction.deferReply();
-        const embed = createPokedexEmbed(user, collection);
-        await interaction.editReply({ embeds: [embed] });
+    // Create navigation buttons
+    const getButtons = (page) => new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId('prev')
+            .setLabel('◀ Previous')
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(page === 0),
+        new ButtonBuilder()
+            .setCustomId('next')
+            .setLabel('Next ▶')
+            .setStyle(ButtonStyle.Primary)
+            .setDisabled(page === collection.length - 1)
+    );
 
-      } catch (error) {
-        console.error('[✗] Command error: potd-pokedex - ',error);
-        if (interaction.deferred) await interaction.editReply('Something went wrong.');
-        else await interaction.reply({ content: 'An error occurred.', ephemeral: true });
-      }
-    }
+    const response = await interaction.reply({
+        embeds: [createPokedexEmbed(user, collection, currentPage)],
+        components: [getButtons(currentPage)],
+        fetchReply: true
+    });
+
+    // Create a collector to listen for button clicks for 5 minutes
+    const collector = response.createMessageComponentCollector({
+        componentType: ComponentType.Button,
+        time: 300000 
+    });
+
+    collector.on('collect', async (i) => {
+        if (i.user.id !== interaction.user.id) return i.reply({ content: "Only the owner can change pages.", ephemeral: true });
+
+        if (i.customId === 'prev') currentPage--;
+        if (i.customId === 'next') currentPage++;
+
+        await i.update({
+            embeds: [createPokedexEmbed(user, collection, currentPage)],
+            components: [getButtons(currentPage)]
+        });
+    });
+}
   }
 
   // Handle modal submission
