@@ -59,7 +59,7 @@ async function getUserAllPokemons(userId) {
 
 
 module.exports = {
-    initialiseDatabase,
+    initializeDatabase,
     addUserPokemon,
     getUserRecentPokemon,
     getUserAllPokemons
