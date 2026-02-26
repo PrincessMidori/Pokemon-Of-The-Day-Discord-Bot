@@ -36,9 +36,9 @@ async function registerCommands() {
 }
 
 // potd command
-async function handlePotdCommand(userId, guildName) {
+async function handlePotdCommand(user, guildName) {
     try {
-        const recentEntry = await dbService.getUserRecentPokemon(userId);
+        const recentEntry = await dbService.getUserRecentPokemon(user.id);
         const cooldown = 12 * 60 * 60 * 1000; // 12h in milliseconds
         const now = Date.now();
 
@@ -78,9 +78,9 @@ return await pokemonService.getRandomPokemon({ debug: true });
 }
 
 // potd-pokedex command
-async function handlePokedexCommand(userId) {
+async function handlePokedexCommand(user) {
     try {
-       return await dbService.getUserAllPokemons(userId);
+       return await dbService.getUserAllPokemons(user.id);
     } catch (error) {
         console.error(error);
         throw error;
