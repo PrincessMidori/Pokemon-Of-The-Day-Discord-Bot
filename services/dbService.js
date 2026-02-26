@@ -1,7 +1,5 @@
 const mongoose = require('mongoose');
 
-initialiseDatabase().catch(err => console.log(err));
-
 async function initialiseDatabase() {
     await mongoose.connect(process.env.MONGO_URL);
 }
@@ -30,7 +28,7 @@ async function addUserPokemon(user, pokemonData, guildName) {
         await newDbEntry.save();
         return newDbEntry;
     } catch (error) {
-        console.log(error);
+        console.error('[✗] addUserPokemon: ', error);
     }
 }
 
@@ -43,7 +41,7 @@ async function getUserRecentPokemon(userId) {
 
         return recentPokemon;
     } catch (error) {
-        console.log(error);
+        console.error('[✗] getUserRecentPokemon: ', error);
     }
 }
 
@@ -54,7 +52,7 @@ async function getUserAllPokemons(userId) {
         .sort({ timestamp: -1 })
         .lean();
     } catch (error) {
-        console.log(error);
+        console.error('[✗] getUserAllPokemons: ', error);
         return [];
     }
 }

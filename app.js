@@ -44,7 +44,7 @@ client.on('interactionCreate', async (interaction) => {
         await interaction.editReply({ embeds: [embed] });
 
       } catch (error) {
-        console.error(error);
+        console.error('[✗] Command error: potd - ',error);
         if (interaction.deferred) await interaction.editReply('Something went wrong. Please contact my creator.');
         else await interaction.reply({ content: 'Something went wrong.', ephemeral: true });
       }
@@ -83,7 +83,7 @@ client.on('interactionCreate', async (interaction) => {
         await interaction.editReply({ embeds: [embed] });
 
       } catch (error) {
-        console.log(error);
+        console.error('[✗] Command error: potd-pokedex - ',error);
         if (interaction.deferred) await interaction.editReply('Something went wrong.');
         else await interaction.reply({ content: 'An error occurred.', ephemeral: true });
       }
@@ -106,7 +106,7 @@ client.on('interactionCreate', async (interaction) => {
         const embed = createPotdEmbed(pokemon, user.id);
         await interaction.editReply({ embeds: [embed] });
       } catch (error) {
-        console.error('Debug Error:', error.message);
+        console.error('[✗] Debug Error:', error.message);
         await interaction.editReply('potd-debug-shiny failed.');
       }
     }
@@ -117,10 +117,13 @@ async function start() {
   try {
     console.log('Starting Pokemon of the Day Discord Bot');
     await dbService.initializeDatabase(); 
+    console.log('[✓] Database connected')
     await registerCommands();
+    console.log('[✓] Registering commands')
     await client.login(process.env.DISCORD_TOKEN);
+    console.log('[✓] CLient login successful')
   } catch (error) {
-    console.error('Startup error:', error.message);
+    console.error('[✗] Startup error:', error.message);
     process.exit(1);
   }
 }

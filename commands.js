@@ -67,7 +67,7 @@ async function handlePotdCommand(user, guildName) {
         return { onCooldown: false, pokemon };
 
     } catch (error) {
-        console.error(error);
+        console.error('[✗] ', error);
         throw error;
     }
 }
@@ -82,7 +82,7 @@ async function handlePokedexCommand(user) {
     try {
        return await dbService.getUserAllPokemons(user.id);
     } catch (error) {
-        console.error(error);
+        console.error('[✗] ', error);
         throw error;
     }
 }
