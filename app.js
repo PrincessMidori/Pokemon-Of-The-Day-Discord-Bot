@@ -79,7 +79,7 @@ client.on('interactionCreate', async (interaction) => {
     // potd-pokedex command
 if (commandName === 'potd-pokedex') {
     const collection = await handlePokedexCommand(user);
-    if (collection.length === 0) return interaction.reply({ content: 'Your Pokedex is empty.', ephemeral: true });
+    if (collection.length === 0) return interaction.reply({ content: 'Your collection is empty.', ephemeral: true });
 
     let currentPage = 0;
 
