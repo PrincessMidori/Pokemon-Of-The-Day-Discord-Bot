@@ -94,5 +94,6 @@ function formatPokemonData(data, debug = false) {
 }
 
 module.exports = {
-    getRandomPokemon
+    getRandomPokemon,
+    TOTAL_POKEMON_COUNT
 };
