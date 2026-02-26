@@ -26,6 +26,19 @@ const client = new Client({
 
 client.once('clientReady', (c) => {
   console.log(`Initialising client ${c.user.tag}`);
+
+const updateStatus = async () => {
+        const total = await dbService.getTotalCatchCount();
+        client.user.setActivity(`${total} Pokémons caught`, { type: 3 }); // 3 = Watching
+        console.log(`[i] Status updated: ${total} catches`);
+    };
+
+    // Initial update when starting
+    updateStatus();
+
+    // Update every hour (3600000 milliseconds)
+    setInterval(updateStatus, 3600000);
+
 });
 
 client.on('interactionCreate', async (interaction) => {
