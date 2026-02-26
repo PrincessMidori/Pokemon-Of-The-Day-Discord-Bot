@@ -9,20 +9,22 @@ const dbEntrySchema = new mongoose.Schema({
     username: String,
     pokemon: Object,
     location: String,
-    timestamp: { type: Date, default: Date.now }
+    timestamp: { type: Date, default: Date.now },
+    isEvent: { type: Boolean, default: false } // Event
 });
 
 const dbEntry = mongoose.model('dbEntry', dbEntrySchema);
 
 // Add new Pokemon as a database entry for a given user
-async function addUserPokemon(user, pokemonData, guildName) {
+async function addUserPokemon(user, pokemonData, guildName, isEvent = false) {
     try {
         const newDbEntry = new dbEntry({
             userId: user.id,
             username: user.username,
             pokemon: pokemonData,
             location: guildName || 'Direct Message',
-            timestamp: new Date()
+            timestamp: new Date(),
+            isEvent: isEvent // Event
         });
 
         await newDbEntry.save();
@@ -57,10 +59,21 @@ async function getUserAllPokemons(userId) {
     }
 }
 
+// Event
+async function getEventPullsCount(userId) {
+    try {
+        return await dbEntry.countDocuments({ userId, isEvent: true });
+    } catch (error) {
+        console.error('[✗] getEventPullsCount: ', error);
+        return 0;
+    }
+}
+
 
 module.exports = {
     initializeDatabase,
     addUserPokemon,
     getUserRecentPokemon,
-    getUserAllPokemons
+    getUserAllPokemons,
+    getEventPullsCount // Event
 }
