@@ -35,31 +35,22 @@ function createPotdEmbed(pokemon, userId) {
 }
 
 // Pokedex command result
-function createPokedexEmbed(user, collection) {
-
-    const latestPokemon = collection[0]?.pokemon;
-
-    // Sort A-Z by name
-    collection.sort((a, b) => a.pokemon.name.localeCompare(b.pokemon.name));
-
-    const remaining = TOTAL_POKEMON_COUNT - collection.length;
-    const columns = [[], [], []];
-    
-    // Distribute into columns
-    collection.forEach((entry, index) => {
-        columns[index % 3].push(`${entry.pokemon.spriteUrl} ${entry.pokemon.name}`);
-    });
+function createPokedexEmbed(user, collection, page = 0) {
+    const pokemon = collection[page].pokemon;
+    const dateCaught = new Date(collection[page].timestamp).toLocaleDateString('en-GB');
+    const bulbapediaLink = `https://bulbapedia.bulbagarden.net/wiki/${pokemon.name}_(Pok%C3%A9mon)`;
 
     return {
         color: 0x9B59B6,
-        title: `${user.username}'s Pokédex`,
-        thumbnail: { url: latestPokemon?.spriteUrl }, // Show the latest sprite in the corner
+        title: `${user.displayName}'s Pokédex`,
+        description: `**Entry #${page + 1} of ${collection.length}**`,
+        thumbnail: { url: pokemon.spriteUrl },
         fields: [
-            { name: 'Collection A-Z', value: columns[0].join('\n') || 'Empty', inline: true },
-            { name: '\u200b', value: columns[1].join('\n') || '\u200b', inline: true },
-            { name: '\u200b', value: columns[2].join('\n') || '\u200b', inline: true },
+            { name: 'Name', value: pokemon.name.toUpperCase(), inline: true },
+            { name: 'Date Caught', value: dateCaught, inline: true },
+            { name: 'Research', value: `[Bulbapedia Page](${bulbapediaLink})` }
         ],
-        footer: { text: `${remaining} left to catch.` },
+        footer: { text: `${1025 - collection.length} left to catch.` },
         timestamp: new Date().toISOString()
     };
 }
