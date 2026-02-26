@@ -1,10 +1,10 @@
 
 const { TOTAL_POKEMON_COUNT } = require('./services/pokemonService');
-const trainer = `<@${userId}>`;
 
 // potd command result
 function createPotdEmbed(pokemon, userId) {
 
+    const trainer = `<@${userId}>`;
     const displayName = pokemon.isShiny 
         ? `✨ ${pokemon.name} ✨` 
         : pokemon.name;
@@ -37,6 +37,8 @@ function createPotdEmbed(pokemon, userId) {
 // Pokedex command result
 function createPokedexEmbed(user, collection) {
 
+    const latestPokemon = collection[0]?.pokemon;
+
     // Sort A-Z by name
     collection.sort((a, b) => a.pokemon.name.localeCompare(b.pokemon.name));
 
@@ -51,7 +53,7 @@ function createPokedexEmbed(user, collection) {
     return {
         color: 0x9B59B6,
         title: `${user.username}'s Pokédex`,
-        thumbnail: { url: collection[0]?.pokemon.spriteUrl }, // Show the latest sprite in the corner
+        thumbnail: { url: latestPokemon?.spriteUrl }, // Show the latest sprite in the corner
         fields: [
             { name: 'Collection A-Z', value: columns[0].join('\n') || 'Empty', inline: true },
             { name: '\u200b', value: columns[1].join('\n') || '\u200b', inline: true },
