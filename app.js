@@ -19,42 +19,39 @@ client.once('ready', () => {
 });
 
 client.on('interactionCreate', async (interaction) => {
+  const { commandName, user } = interaction;
 
-// Handle slash commands
+  // Handle slash commands
   if (interaction.isChatInputCommand()) {
-    const { commandName, user } = interaction;
-
+    
     // potd command
     if (commandName === 'potd') {
       try {
         const guildName = interaction.guild ? interaction.guild.name : 'Direct Message';
-        const result = await handlePotdCommand(interaction.user, guildName);
+        const result = await handlePotdCommand(user, guildName);
 
-        // User has cooldown
         if (result.onCooldown) {
-          console.log(`POTD: User ${user.tag} in ${guildName} used /potd command but they still have cooldown of ${result.timeLeft}`)
+          console.log(`POTD: User ${user.tag} in ${guildName} used /potd command but they still have cooldown of ${result.timeLeft}`);
           return await interaction.reply({
             content: `You already rolled for today. Time remaining until next roll: **${result.timeLeft}**`,
             ephemeral: true
           });
         }
 
-        // User can roll for a new Pokemon
-        console.log(`POTD: User ${user.tag} in ${guildName} used /potd command and got ${pokemon.name} at ${Date.now()}`)
+        console.log(`POTD: User ${user.tag} in ${guildName} used /potd command and got ${result.pokemon.name}`);
         await interaction.deferReply();
-        const embed = createPotdEmbed(result.pokemon, interaction.user.id);
+        const embed = createPotdEmbed(result.pokemon, user.id);
         await interaction.editReply({ embeds: [embed] });
 
       } catch (error) {
         console.error(error);
-        await interaction.editReply({ content: 'Something went wrong. Please contact my creator.', ephemeral: true });
+        if (interaction.deferred) await interaction.editReply('Something went wrong. Please contact my creator.');
+        else await interaction.reply({ content: 'Something went wrong.', ephemeral: true });
       }
     }
 
     // potd-debug-shiny command
     if (commandName === 'potd-debug-shiny') {
-      console.log(`DEBUG: User ${user.tag} (${user.id}) initiated /potd-debug-shiny`);
-
       const modal = new ModalBuilder()
         .setCustomId('debug_modal')
         .setTitle('Debug Access');
@@ -68,26 +65,40 @@ client.on('interactionCreate', async (interaction) => {
       modal.addComponents(new ActionRowBuilder().addComponents(passwordInput));
       return await interaction.showModal(modal);
     }
+
+    // potd-pokedex command
+    if (commandName === 'potd-pokedex') {
+      try {
+        const collection = await dbService.getUserAllPokemons(user.id);
+
+        if (collection.length === 0) {
+          return await interaction.reply({ 
+            content: 'Your Pokédex is empty. You can expand it by using /potd command', 
+            ephemeral: true 
+          });
+        }
+
+        await interaction.deferReply();
+        const embed = createPokedexEmbed(user, collection);
+        await interaction.editReply({ embeds: [embed] });
+
+      } catch (error) {
+        console.log(error);
+        if (interaction.deferred) await interaction.editReply('Something went wrong.');
+        else await interaction.reply({ content: 'An error occurred.', ephemeral: true });
+      }
+    }
   }
 
   // Handle modal submission
   if (interaction.isModalSubmit()) {
     if (interaction.customId === 'debug_modal') {
-      const { user } = interaction;
       const input = interaction.fields.getTextInputValue('password_field');
       
-      // Check the password first
       if (input !== process.env.DEBUG_PASSWORD) {
-        // Log the failure and the attempted password
         console.warn(`DEBUG: User ${user.tag} tried password: "${input}"`);
-        
-        return await interaction.reply({ 
-          content: 'Access denied. Nice try.', 
-          ephemeral: true 
-        });
+        return await interaction.reply({ content: 'Access denied.', ephemeral: true });
       }
-
-      console.log(`DEBUG: User ${user.tag} successfully accessed potd-debug-shiny command.`);
 
       try {
         await interaction.deferReply(); 
@@ -100,33 +111,12 @@ client.on('interactionCreate', async (interaction) => {
       }
     }
   }
-
-      // potd-pokedex command
-    if (commandName === 'potd-pokedex') {
-      try {
-        await interaction.deferReply();
-        const collection = await dbService.getUserAllPokemons(user.id);
-
-        if (collection.length === 0) {
-          return await interaction.reply({ 
-          content: 'Your Pokédex is empty. You can expand it by using /potd command', 
-          ephemeral: true 
-          });
-      }
-
-      const embed = createPokedexEmbed(user, collection);
-      await interaction.editReply({ embeds: [embed]});
-
-    } catch (error) {
-      console.log(error);
-      await interaction.editReply('Something went wrong. Please contact my creator');
-    }
-}
+});
 
 async function start() {
   try {
     console.log('Starting Pokemon of the Day Discord Bot');
-    await dbService.initialiseDatabase();
+    await dbService.initializeDatabase(); 
     await registerCommands();
     await client.login(process.env.DISCORD_TOKEN);
   } catch (error) {
