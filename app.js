@@ -69,7 +69,7 @@ client.on('interactionCreate', async (interaction) => {
     // potd-pokedex command
     if (commandName === 'potd-pokedex') {
       try {
-        const collection = await dbService.getUserAllPokemons(user.id);
+        const collection = await handlePokedexCommand(user);
 
         if (collection.length === 0) {
           return await interaction.reply({ 
