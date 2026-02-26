@@ -46,9 +46,9 @@ function createPokedexEmbed(user, collection, page = 0) {
         description: `**Entry #${page + 1} of ${collection.length}**`,
         thumbnail: { url: pokemon.spriteUrl },
         fields: [
-            { name: 'Name', value: pokemon.name.toUpperCase(), inline: true },
+            { name: 'Name', value: pokemon.name, inline: true },
             { name: 'Date Caught', value: dateCaught, inline: true },
-            { name: 'Research', value: `[Bulbapedia Page](${bulbapediaLink})` }
+            { name: 'Wiki Entry', value: `[Bulbapedia Page](${bulbapediaLink})` }
         ],
         footer: { text: `${1025 - collection.length} left to catch.` },
         timestamp: new Date().toISOString()

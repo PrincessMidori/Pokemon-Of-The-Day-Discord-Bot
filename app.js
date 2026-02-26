@@ -98,18 +98,18 @@ if (commandName === 'potd-pokedex') {
     let currentPage = 0;
 
     // Create navigation buttons
-    const getButtons = (page) => new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-            .setCustomId('prev')
-            .setLabel('◀ Previous')
-            .setStyle(ButtonStyle.Primary)
-            .setDisabled(page === 0),
-        new ButtonBuilder()
-            .setCustomId('next')
-            .setLabel('Next ▶')
-            .setStyle(ButtonStyle.Primary)
-            .setDisabled(page === collection.length - 1)
-    );
+const getButtons = (page) => new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+        .setCustomId('prev')
+        .setLabel('L') // Representing the L1 shoulder button
+        .setStyle(ButtonStyle.Secondary) // Grey color like a Game Boy button
+        .setDisabled(page === 0),
+    new ButtonBuilder()
+        .setCustomId('next')
+        .setLabel('R') // Representing the R1 shoulder button
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(page === collection.length - 1)
+);
 
     const response = await interaction.reply({
         embeds: [createPokedexEmbed(user, collection, currentPage)],
