@@ -57,9 +57,13 @@ async function handlePotdCommand(userId, guildName) {
             }
         }
 
-        const pokemon = await pokemonService.getRandomPokemon();
-        await dbService.addUserPokemon(user, pokemon, guildName);
+        const fullCollection = await dbService.getUserAllPokemons(user.id);
+        const ownedIds = fullCollection.map(entry => entry.pokemon.id);
 
+        // Pass the owned IDs to the generator
+        const pokemon = await pokemonService.getRandomPokemon({ excludedIds: ownedIds });
+    
+        await dbService.addUserPokemon(user, pokemon, guildName);
         return { onCooldown: false, pokemon };
 
     } catch (error) {
