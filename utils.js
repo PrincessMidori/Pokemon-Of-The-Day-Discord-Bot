@@ -1,4 +1,5 @@
 
+const { TOTAL_POKEMON_COUNT } = require('./services/pokemonService');
 const trainer = `<@${userId}>`;
 
 // potd command result
@@ -35,21 +36,28 @@ function createPotdEmbed(pokemon, userId) {
 
 // Pokedex command result
 function createPokedexEmbed(user, collection) {
-    const displayList = collection.map(entry => {
-        const spitePlaceholder = entry.pokemon.isShiny ? '✨' : '🔘';
-        return `${spitePlaceholder} ${entry.pokemon.name}`;
-    }).join(`, \n`);
 
-return {
-        color: 0x9B59B6, // Purple
-        title: `${user.username}'s Pokedex`,
-        description: displayList.length > 4000 
-            ? displayList.substring(0, 3997) + '...' 
-            : displayList,
+    // Sort A-Z by name
+    collection.sort((a, b) => a.pokemon.name.localeCompare(b.pokemon.name));
+
+    const remaining = TOTAL_POKEMON_COUNT - collection.length;
+    const columns = [[], [], []];
+    
+    // Distribute into columns
+    collection.forEach((entry, index) => {
+        columns[index % 3].push(`${entry.pokemon.spriteUrl} ${entry.pokemon.name}`);
+    });
+
+    return {
+        color: 0x9B59B6,
+        title: `${user.username}'s Pokédex`,
+        thumbnail: { url: collection[0]?.pokemon.spriteUrl }, // Show the latest sprite in the corner
         fields: [
-            { name: 'Total Collected:', value: `${collection.length} Pokémon`, inline: true }
+            { name: 'Collection A-Z', value: columns[0].join('\n') || 'Empty', inline: true },
+            { name: '\u200b', value: columns[1].join('\n') || '\u200b', inline: true },
+            { name: '\u200b', value: columns[2].join('\n') || '\u200b', inline: true },
         ],
-        footer: { text: `${1025 - collection.length} remaining.` },
+        footer: { text: `${remaining} left to catch.` },
         timestamp: new Date().toISOString()
     };
 }
