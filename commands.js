@@ -39,24 +39,6 @@ async function registerCommands() {
 async function handlePotdCommand(user, guildName) {
     try {
 
-        // === Event START ===
-        const eventCount = await dbService.getEventPullsCount(user.id);
-        const maxEventPulls = 14;
-
-        if (eventCount < maxEventPulls) {
-            const fullCollection = await dbService.getUserAllPokemons(user.id);
-            const ownedIds = fullCollection.map(entry => entry.pokemon.id);
-            const pokemon = await pokemonService.getRandomPokemon({ excludedIds: ownedIds });
-            
-            await dbService.addUserPokemon(user, pokemon, guildName, true);
-            return { 
-                isEvent: true, 
-                pokemon, 
-                eventRemaining: (maxEventPulls - eventCount - 1) 
-            };
-        }
-        // === Event END ===
-
         const recentEntry = await dbService.getUserRecentPokemon(user.id);
         const cooldown = 12 * 60 * 60 * 1000; // 12h in milliseconds
         const now = Date.now();

@@ -61,20 +61,6 @@ client.on('interactionCreate', async (interaction) => {
           });
         }
 
-        // === Event START ===
-
-        if (result.isEvent) {
-          console.log(`=== EVENT ===: User ${user.tag} in ${guildName} used /potd command and got ${result.pokemon.name}. They have ${result.eventRemaining} pulls left.`);
-            await interaction.reply({
-              content: `✨ Special Event to compensate for 2 weeks of previous version! ✨ Your remaining pull amount: **${result.eventRemaining}**.`,
-              ephemeral: true
-            });
-            const embed = createPotdEmbed(result.pokemon, user.id);
-            return await interaction.followUp({ embeds: [embed] });
-        }
-
-        // === Event END ===
-
         console.log(`POTD: User ${user.tag} in ${guildName} used /potd command and got ${result.pokemon.name}`);
         await interaction.deferReply();
         const embed = createPotdEmbed(result.pokemon, user.id);
