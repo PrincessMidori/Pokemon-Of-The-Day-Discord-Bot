@@ -10,7 +10,9 @@
 
 Developed on Arch Linux and self hosted on Homelab - Horoscope-like Pokémon Discord bot made for friend's birthday.  
   
-Outputs random, individual Pokémon for user performing `/potd` command and caches Discord userId for a day.
+Outputs random, individual Pokémon for user performing `/potd` command and stores it in persistent database.  
+
+Displays all caught Pokémons in a simple Pokédex by using `/potd-pokedex`.
 
 ## Features
 
