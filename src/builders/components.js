@@ -12,12 +12,12 @@ function buildPokedexButtons(page, collectionLength) {
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId('prev')
-      .setLabel('◀ L')
+      .setLabel('L')
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(page === 0),
     new ButtonBuilder()
       .setCustomId('next')
-      .setLabel('R ▶')
+      .setLabel('R')
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(page === collectionLength - 1),
   );
