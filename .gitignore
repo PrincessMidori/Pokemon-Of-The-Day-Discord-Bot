@@ -4,5 +4,4 @@ node_modules/
 *.log
 data/
 pokemon-bot.db
-package-lock.json
 
