@@ -2,7 +2,7 @@
 
 <br>
 
-![preview](preview.png)
+![preview](previews/preview.png)
 
 <br>
 
@@ -20,11 +20,11 @@ Displays all caught Pokémons in a simple Pokédex by using `/potd-pokedex`.
 * Stores user and their entry in persistent database
 * Has Pokedex for each individual user `/potd-pokedex`  
 
- ![alt text](pokedex_preview.png)  
+ ![alt text](previews/pokedex_preview.png)  
 
 * Has 1 / 300 chance to be a shiny (indicated by different name, embed colour and official graphic)  
 
-![shiny_preview](shiny_preview.png)  
+![shiny_preview](previews/shiny_preview.png)  
 
 * Has capability to recognise the Birthday Girl
 * Supports events
