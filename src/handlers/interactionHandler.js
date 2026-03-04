@@ -1,4 +1,4 @@
-const { ComponentType }   = require('discord.js');
+const { ComponentType, MessageFlags }   = require('discord.js');
 const { commandHandlers } = require('../commands');
 const { createPotdEmbed, createPokedexEmbed }  = require('../builders/embeds');
 const { buildPokedexButtons, buildDebugModal } = require('../builders/components');
@@ -32,7 +32,7 @@ async function handlePotd(interaction, user, guildName) {
       console.log(`POTD: ${user.tag} in ${guildName} is on cooldown — ${result.timeLeft} remaining`);
       return interaction.reply({
         content:   `You already rolled today. Next roll in: **${result.timeLeft}**`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral
       });
     }
 
@@ -45,7 +45,7 @@ async function handlePotd(interaction, user, guildName) {
     const msg = 'Something went wrong. Please contact my creator.';
     return interaction.deferred
       ? interaction.editReply(msg)
-      : interaction.reply({ content: msg, ephemeral: true });
+      : interaction.reply({ content: msg, flags: MessageFlags.Ephemeral });
   }
 }
 
@@ -54,16 +54,17 @@ async function handlePokedex(interaction, user) {
     const collection = await commandHandlers['potd-pokedex'](user);
 
     if (collection.length === 0) {
-      return interaction.reply({ content: 'Your collection is empty.', ephemeral: true });
+      return interaction.reply({ content: 'Your collection is empty.', flags: MessageFlags.Ephemeral });
     }
 
     let page = 0;
 
-    const response = await interaction.reply({
+    const { resource } = await interaction.reply({
       embeds:     [createPokedexEmbed(user, collection, page)],
       components: [buildPokedexButtons(page, collection.length)],
-      fetchReply: true,
+      withResponse: true,
     });
+    const response = resource.message;
 
     // Listen for button clicks for 5 minutes
     const collector = response.createMessageComponentCollector({
@@ -73,7 +74,7 @@ async function handlePokedex(interaction, user) {
 
     collector.on('collect', async (i) => {
       if (i.user.id !== interaction.user.id) {
-        return i.reply({ content: 'Only the owner can flip pages.', ephemeral: true });
+        return i.reply({ content: 'Only the owner can flip pages.', flags: MessageFlags.Ephemeral });
       }
 
       if (i.customId === 'prev') page--;
@@ -87,7 +88,7 @@ async function handlePokedex(interaction, user) {
 
   } catch (error) {
     console.error('[✗] /potd-pokedex error:', error);
-    return interaction.reply({ content: 'Something went wrong.', ephemeral: true });
+    return interaction.reply({ content: 'Something went wrong.', flags: MessageFlags.Ephemeral });
   }
 }
 
@@ -105,7 +106,7 @@ async function handleModalSubmit(interaction) {
 
     if (input !== process.env.DEBUG_PASSWORD) {
       console.warn(`[DEBUG] ${user.tag} failed password attempt`);
-      return interaction.reply({ content: 'Access denied.', ephemeral: true });
+      return interaction.reply({ content: 'Access denied.', flags: MessageFlags.Ephemeral });
     }
 
     try {
