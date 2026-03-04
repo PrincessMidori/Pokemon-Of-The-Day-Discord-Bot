@@ -11,8 +11,12 @@ module.exports = {
     POTD_NORMAL: 0xA8FF3D,
     POTD_SHINY:  0xF1C40F,
     POKEDEX:     0x9B59B6,
+    EVENT:       0x00DDFF,
   },
 
   // Bot status refresh: 1 hour in milliseconds
   STATUS_UPDATE_INTERVAL_MS: 3_600_000,
+
+  // Event specific values
+  EVENT_POOL_SIZE: 10,
 };

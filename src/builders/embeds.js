@@ -50,4 +50,20 @@ function createPokedexEmbed(user, collection, page = 0) {
   };
 }
 
-module.exports = { createPotdEmbed, createPokedexEmbed };
+// Embed for /potd-event result
+function createEventEmbed(user, pokemons) {
+  const list = pokemons
+    .map((p, i) => `**${i + 1}.** #${p.id} — ${p.name}`)
+    .join('\n');
+
+    return {
+      color: COLORS.EVENT,
+      title: '[REDACTED]',
+      description: list,
+      thumbnail: { url: user.displayAvatarURL() },
+      footer:    { text: `Rolled by ${user.displayName}` },
+      timestamp: new Date().toISOString(),
+    }
+}
+
+module.exports = { createPotdEmbed, createPokedexEmbed, createEventEmbed };

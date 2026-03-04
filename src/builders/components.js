@@ -24,17 +24,17 @@ function buildPokedexButtons(page, collectionLength) {
 }
 
 // Password modal for /potd-debug-shiny
-function buildDebugModal() {
+function buildModal(customId = 'modal') {
   const passwordInput = new TextInputBuilder()
     .setCustomId('password_field')
-    .setLabel('Enter Debug Password')
+    .setLabel('Enter Password')
     .setStyle(TextInputStyle.Short)
     .setRequired(true);
 
   return new ModalBuilder()
-    .setCustomId('debug_modal')
-    .setTitle('Debug Access')
+    .setCustomId(customId)
+    .setTitle('Command Access')
     .addComponents(new ActionRowBuilder().addComponents(passwordInput));
 }
 
-module.exports = { buildPokedexButtons, buildDebugModal };
+module.exports = { buildPokedexButtons, buildModal };

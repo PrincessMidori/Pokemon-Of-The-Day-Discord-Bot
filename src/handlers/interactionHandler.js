@@ -1,7 +1,7 @@
 const { ComponentType, MessageFlags }   = require('discord.js');
 const { commandHandlers } = require('../commands');
-const { createPotdEmbed, createPokedexEmbed }  = require('../builders/embeds');
-const { buildPokedexButtons, buildDebugModal } = require('../builders/components');
+const { createPotdEmbed, createPokedexEmbed, createEventEmbed }  = require('../builders/embeds');
+const { buildPokedexButtons, buildModal } = require('../builders/components');
 
 // Main entry point — routes all incoming interactions
 async function handleInteraction(interaction) {
@@ -22,6 +22,7 @@ async function handleSlashCommand(interaction) {
   if (commandName === 'potd')             return handlePotd(interaction, user, guildName);
   if (commandName === 'potd-pokedex')     return handlePokedex(interaction, user);
   if (commandName === 'potd-debug-shiny') return handleDebugShiny(interaction);
+  if (commandName === 'potd-event')       return handleEvent(interaction);
 }
 
 async function handlePotd(interaction, user, guildName) {
@@ -93,7 +94,11 @@ async function handlePokedex(interaction, user) {
 }
 
 async function handleDebugShiny(interaction) {
-  return interaction.showModal(buildDebugModal());
+  return interaction.showModal(buildModal());
+}
+
+async function handleEvent(interaction) {
+  return interaction.showModal(buildModal('event_modal'));
 }
 
 // ─── Modal submissions ─────────────────────────────────────────────────────────
@@ -101,7 +106,7 @@ async function handleDebugShiny(interaction) {
 async function handleModalSubmit(interaction) {
   const { user } = interaction;
 
-  if (interaction.customId === 'debug_modal') {
+  if (interaction.customId === 'modal') {
     const input = interaction.fields.getTextInputValue('password_field');
 
     if (input !== process.env.DEBUG_PASSWORD) {
@@ -116,6 +121,24 @@ async function handleModalSubmit(interaction) {
     } catch (error) {
       console.error('[✗] Debug shiny error:', error.message);
       return interaction.editReply('potd-debug-shiny failed.');
+    }
+  }
+
+    if (interaction.customId === 'event_modal') {
+    const input = interaction.fields.getTextInputValue('password_field');
+
+    if (input !== process.env.EVENT_PASSWORD) {
+      console.warn(`[EVENT] ${user.tag} failed password attempt`);
+      return interaction.reply({ content: 'Access denied.', flags: MessageFlags.Ephemeral });
+    }
+
+    try {
+      await interaction.deferReply();
+      const pokemons = await commandHandlers['potd-event']();
+      return interaction.editReply({ embeds: [createEventEmbed(user, pokemons)] });
+    } catch (error) {
+      console.error('[✗] Event error:', error.message);
+      return interaction.editReply('potd-event failed.');
     }
   }
 }
