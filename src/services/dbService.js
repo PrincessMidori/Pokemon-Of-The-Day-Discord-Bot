@@ -12,7 +12,7 @@ const catchEntrySchema = new mongoose.Schema({
   timestamp: { type: Date, default: Date.now },
 });
 
-const CatchEntry = mongoose.model('CatchEntry', catchEntrySchema);
+const CatchEntry = mongoose.model('dbEntry', catchEntrySchema); //dbEntry points to previous existing database from previous code
 
 // Add new Pokemon as a database entry for a given user
 async function addUserPokemon(user, pokemonData, guildName) {
