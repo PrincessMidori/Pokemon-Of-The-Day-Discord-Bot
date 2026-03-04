@@ -5,11 +5,26 @@ const SHINY_CHANCE = 1 / 300;
 
 async function getRandomPokemon({ debug = false, excludedIds = [] } = {}) {
     try {
+
+        // Rolling for shiny
+        const shinyRoll = Math.random();
+        const isShiny = shinyRoll < SHINY_CHANCE;
+
+        // Logging how far the user was from getting a shiny
+        const distance = (shinyRoll - SHINY_CHANCE).toFixed(5);
+        console.log(`Shiny was ${distance} away`);
+
         // Create an array of all possible IDs
         const allIds = Array.from({ length: TOTAL_POKEMON_COUNT }, (_, i) => i + 1);
         
         // Filter out what the user already owns
-        const availablePool = allIds.filter(id => !excludedIds.includes(id));
+        let availablePool;
+
+        if (!isShiny) {
+        availablePool = allIds.filter(id => !excludedIds.includes(id));
+        } else {
+            availablePool = allIds;
+        }
 
         if (availablePool.length === 0) {
             throw new Error('User has caught all Pokemons or something went wrong with the pool.');
@@ -23,15 +38,14 @@ async function getRandomPokemon({ debug = false, excludedIds = [] } = {}) {
         if (!response.ok) throw new Error(`PokéAPI Error: ${response.status}`);
         
         const data = await response.json();
-        return formatPokemonData(data, debug);
+        return formatPokemonData(data, debug, isShiny);
     } catch (error) {
         console.error('Error fetching Pokemon:', error.message);
         throw error;
     }
 }
 
-function formatPokemonData(data, debug = false) {
-    let isShiny = Math.random() < SHINY_CHANCE;
+function formatPokemonData(data, debug = false, isShiny) {
     const getStat = (name) => data.stats.find(s => s.stat.name === name)?.base_stat || 0;
 
     // DEBUG: forced Shiny Pokemon
