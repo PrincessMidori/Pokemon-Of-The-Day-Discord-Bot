@@ -6,7 +6,7 @@ async function getRandomPokemon({ debug = false, excludedIds = [] } = {}) {
   try {
     // Roll for shiny (debug always forces shiny)
     const shinyRoll = Math.random();
-    const isShiny   = debug || shinyRoll < SHINY_CHANCE;
+    const isShiny   = shinyRoll < (debug ? 1 / 2 : SHINY_CHANCE); // Debug mode sets shiny odds to 1 / 2
 
     const distance = (shinyRoll - SHINY_CHANCE).toFixed(5);
     console.log(`[Shiny roll] ${shinyRoll.toFixed(5)} (threshold: ${SHINY_CHANCE.toFixed(5)}) → ${isShiny ? '✨ SHINY' : 'normal'} (${distance} away)`);
