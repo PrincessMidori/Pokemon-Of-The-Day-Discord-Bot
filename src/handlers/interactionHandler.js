@@ -47,7 +47,7 @@ async function handlePotd(interaction, user, guildName) {
     const result = await commandHandlers['potd'](user, guildName);
 
     if (result.onCooldown) {
-      console.log(`POTD: ${user.tag} in ${guildName} is on cooldown — ${result.timeLeft} remaining`);
+      console.log(`POTD: ${user.tag} in ${guildName} used /potd but has cooldown`);
       return interaction.reply({
         content: `You already rolled today. Next roll: **${result.timeLeft}**`,
         flags:   MessageFlags.Ephemeral,
@@ -60,6 +60,7 @@ async function handlePotd(interaction, user, guildName) {
 
     // If the user crossed an egg threshold, send a follow-up embed to the same channel
     if (result.newEgg) {
+      console.log(`[Odd Egg]: ${user.tag} in ${guildName} got an Odd Egg`);
       await interaction.followUp({ embeds: [createItemObtainedEmbed(user, 'odd_egg')] });
     }
 
