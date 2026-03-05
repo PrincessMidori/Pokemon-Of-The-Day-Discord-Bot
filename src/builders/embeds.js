@@ -85,7 +85,6 @@ function createProfileEmbed(user, stats) {
       { name: '🌍 Top Region',      value: stats.topRegion,           inline: true  },
       { name: '🎒 Inventory',       value: stats.inventorySummary,    inline: false },
     ],
-    footer:    { text: 'Use the buttons below to manage your eggs.' },
     timestamp: new Date().toISOString(),
   };
 }

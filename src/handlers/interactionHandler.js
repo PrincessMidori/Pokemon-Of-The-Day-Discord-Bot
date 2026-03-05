@@ -49,7 +49,7 @@ async function handlePotd(interaction, user, guildName) {
     if (result.onCooldown) {
       console.log(`POTD: ${user.tag} in ${guildName} is on cooldown — ${result.timeLeft} remaining`);
       return interaction.reply({
-        content: `You already rolled today. Next roll in: **${result.timeLeft}**`,
+        content: `You already rolled today. Next roll: **${result.timeLeft}**`,
         flags:   MessageFlags.Ephemeral,
       });
     }
