@@ -31,7 +31,7 @@ function msUntilMidnightVienna() {
     hour12:   false,
   }).formatToParts(now);
 
-  const h = Number(parts.find(p => p.type === 'hour').value);
+  const h = Number(parts.find(p => p.type === 'hour').value) % 24;
   const m = Number(parts.find(p => p.type === 'minute').value);
   const s = Number(parts.find(p => p.type === 'second').value);
 
