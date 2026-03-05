@@ -3,8 +3,8 @@ module.exports = {
   TOTAL_POKEMON_COUNT: 1025,
   SHINY_CHANCE: 1 / 300,
 
-  // Cooldown: 12 hours in milliseconds
-  COOLDOWN_MS: 12 * 60 * 60 * 1000,
+  // Timezone for midnight reset
+  TIMEZONE: 'Europe/Vienna',
 
   // Bot status refresh: 1 hour in milliseconds
   STATUS_UPDATE_INTERVAL_MS: 3_600_000,

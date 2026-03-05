@@ -1,21 +1,55 @@
 const dbService        = require('../services/dbService');
 const pokemonService   = require('../services/pokemonService');
 const inventoryService = require('../services/inventoryService');
-const { COOLDOWN_MS, EGG_CATCH_THRESHOLD } = require('../constants');
+const { EGG_CATCH_THRESHOLD, TIMEZONE } = require('../constants');
 
 const definition = {
   name:        'potd',
   description: 'Get your Pokémon of the day!',
 };
 
+// Returns the calendar date string (YYYY-MM-DD) for a given Date object
+// in the Vienna timezone. DST is handled automatically by Intl.
+function toViennaDateString(date) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: TIMEZONE,
+    year:     'numeric',
+    month:    '2-digit',
+    day:      '2-digit',
+  }).format(date);
+}
+
+// Returns milliseconds until the next midnight in Vienna time.
+// Used to show the user how long until they can roll again.
+function msUntilMidnightVienna() {
+  const now   = new Date();
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: TIMEZONE,
+    hour:     'numeric',
+    minute:   'numeric',
+    second:   'numeric',
+    hour12:   false,
+  }).formatToParts(now);
+
+  const h = Number(parts.find(p => p.type === 'hour').value);
+  const m = Number(parts.find(p => p.type === 'minute').value);
+  const s = Number(parts.find(p => p.type === 'second').value);
+
+  const secondsPassedToday    = h * 3600 + m * 60 + s;
+  const secondsUntilMidnight  = 86400 - secondsPassedToday;
+  return secondsUntilMidnight * 1000;
+}
+
 async function handle(user, guildName) {
   // ── Cooldown check ──────────────────────────────────────────────────────────
   const recentEntry = await dbService.getUserRecentPokemon(user.id);
 
   if (recentEntry) {
-    const elapsed = Date.now() - new Date(recentEntry.timestamp).getTime();
-    if (elapsed < COOLDOWN_MS) {
-      const remaining = COOLDOWN_MS - elapsed;
+    const todayVienna  = toViennaDateString(new Date());
+    const catchVienna  = toViennaDateString(new Date(recentEntry.timestamp));
+
+    if (todayVienna === catchVienna) {
+      const remaining = msUntilMidnightVienna();
       const hours     = Math.floor(remaining / 3_600_000);
       const minutes   = Math.floor((remaining % 3_600_000) / 60_000);
       return { onCooldown: true, timeLeft: `${hours}h ${minutes}m` };
@@ -35,7 +69,6 @@ async function handle(user, guildName) {
   await dbService.addUserPokemon(user, pokemon, guildName);
 
   // ── Egg threshold check ─────────────────────────────────────────────────────
-  // fullCollection.length + 1 because the catch above was just saved
   const totalCatches = fullCollection.length + 1;
   let newEgg = false;
 
