@@ -1,9 +1,24 @@
-const { ComponentType, MessageFlags }   = require('discord.js');
-const { commandHandlers } = require('../commands');
-const { createPotdEmbed, createPokedexEmbed, createEventEmbed }  = require('../builders/embeds');
-const { buildPokedexButtons, buildModal } = require('../builders/components');
+const { ComponentType, MessageFlags } = require('discord.js');
+const { commandHandlers }             = require('../commands');
+const dbService                       = require('../services/dbService');
+const inventoryService                = require('../services/inventoryService');
+const pokemonService                  = require('../services/pokemonService');
+const { computeProfileStats }         = require('../utils/profileStats');
+const {
+  createPotdEmbed,
+  createPokedexEmbed,
+  createEventEmbed,
+  createProfileEmbed,
+  createItemObtainedEmbed,
+}                                     = require('../builders/embeds');
+const {
+  buildPokedexButtons,
+  buildProfileButtons,
+  buildModal,
+}                                     = require('../builders/components');
 
-// Main entry point — routes all incoming interactions
+// ─── Entry point ──────────────────────────────────────────────────────────────
+
 async function handleInteraction(interaction) {
   try {
     if (interaction.isChatInputCommand()) return handleSlashCommand(interaction);
@@ -13,7 +28,7 @@ async function handleInteraction(interaction) {
   }
 }
 
-// ─── Slash commands ────────────────────────────────────────────────────────────
+// ─── Slash command router ─────────────────────────────────────────────────────
 
 async function handleSlashCommand(interaction) {
   const { commandName, user } = interaction;
@@ -21,9 +36,11 @@ async function handleSlashCommand(interaction) {
 
   if (commandName === 'potd')             return handlePotd(interaction, user, guildName);
   if (commandName === 'potd-pokedex')     return handlePokedex(interaction, user);
-  if (commandName === 'potd-debug-shiny') return handleDebugShiny(interaction);
-  if (commandName === 'potd-event')       return handleEvent(interaction);
+  if (commandName === 'potd-debug-shiny') return interaction.showModal(buildModal());
+  if (commandName === 'potd-event')       return interaction.showModal(buildModal('event_modal'));
 }
+
+// ─── /potd ────────────────────────────────────────────────────────────────────
 
 async function handlePotd(interaction, user, guildName) {
   try {
@@ -32,14 +49,19 @@ async function handlePotd(interaction, user, guildName) {
     if (result.onCooldown) {
       console.log(`POTD: ${user.tag} in ${guildName} is on cooldown — ${result.timeLeft} remaining`);
       return interaction.reply({
-        content:   `You already rolled today. Next roll in: **${result.timeLeft}**`,
-        flags: MessageFlags.Ephemeral
+        content: `You already rolled today. Next roll in: **${result.timeLeft}**`,
+        flags:   MessageFlags.Ephemeral,
       });
     }
 
     console.log(`POTD: ${user.tag} in ${guildName} got ${result.pokemon.name}`);
     await interaction.deferReply();
-    return interaction.editReply({ embeds: [createPotdEmbed(result.pokemon, user.id)] });
+    await interaction.editReply({ embeds: [createPotdEmbed(result.pokemon, user.id)] });
+
+    // If the user crossed an egg threshold, send a follow-up embed to the same channel
+    if (result.newEgg) {
+      await interaction.followUp({ embeds: [createItemObtainedEmbed(user, 'odd_egg')] });
+    }
 
   } catch (error) {
     console.error('[✗] /potd error:', error);
@@ -49,6 +71,8 @@ async function handlePotd(interaction, user, guildName) {
       : interaction.reply({ content: msg, flags: MessageFlags.Ephemeral });
   }
 }
+
+// ─── /potd-pokedex ────────────────────────────────────────────────────────────
 
 async function handlePokedex(interaction, user) {
   try {
@@ -61,30 +85,96 @@ async function handlePokedex(interaction, user) {
     let page = 0;
 
     const { resource } = await interaction.reply({
-      embeds:     [createPokedexEmbed(user, collection, page)],
-      components: [buildPokedexButtons(page, collection.length)],
+      embeds:       [createPokedexEmbed(user, collection, page)],
+      components:   [buildPokedexButtons(page, collection.length)],
       withResponse: true,
     });
     const response = resource.message;
 
-    // Listen for button clicks for 5 minutes
+    // Collector listens for all button clicks on this message for 5 minutes
     const collector = response.createMessageComponentCollector({
       componentType: ComponentType.Button,
-      time: 300_000,
+      time:          300_000,
     });
 
     collector.on('collect', async (i) => {
       if (i.user.id !== interaction.user.id) {
-        return i.reply({ content: 'Only the owner can flip pages.', flags: MessageFlags.Ephemeral });
+        return i.reply({ content: 'Only the owner can interact with this.', flags: MessageFlags.Ephemeral });
       }
 
-      if (i.customId === 'prev') page--;
-      if (i.customId === 'next') page++;
+      // ── Pokedex navigation ───────────────────────────────────────────────
+      if (i.customId === 'prev') {
+        page--;
+        return i.update({
+          embeds:     [createPokedexEmbed(user, collection, page)],
+          components: [buildPokedexButtons(page, collection.length)],
+        });
+      }
 
-      return i.update({
-        embeds:     [createPokedexEmbed(user, collection, page)],
-        components: [buildPokedexButtons(page, collection.length)],
-      });
+      if (i.customId === 'next') {
+        page++;
+        return i.update({
+          embeds:     [createPokedexEmbed(user, collection, page)],
+          components: [buildPokedexButtons(page, collection.length)],
+        });
+      }
+
+      // ── Profile screen ───────────────────────────────────────────────────
+      if (i.customId === 'profile') {
+        const inventory = await inventoryService.getUserInventory(user.id);
+        const eggState  = await inventoryService.getEggState(user.id);
+        const stats     = computeProfileStats(collection, inventory);
+
+        return i.update({
+          embeds:     [createProfileEmbed(user, stats)],
+          components: [buildProfileButtons(eggState)],
+        });
+      }
+
+      if (i.customId === 'back_to_pokedex') {
+        return i.update({
+          embeds:     [createPokedexEmbed(user, collection, page)],
+          components: [buildPokedexButtons(page, collection.length)],
+        });
+      }
+
+      // ── Egg: start incubation ────────────────────────────────────────────
+      if (i.customId === 'incubate_egg') {
+        await inventoryService.startIncubation(user.id);
+
+        const inventory = await inventoryService.getUserInventory(user.id);
+        const eggState  = await inventoryService.getEggState(user.id);
+        const stats     = computeProfileStats(collection, inventory);
+
+        return i.update({
+          embeds:     [createProfileEmbed(user, stats)],
+          components: [buildProfileButtons(eggState)],
+        });
+      }
+
+      // ── Egg: hatch ───────────────────────────────────────────────────────
+      if (i.customId === 'hatch_egg') {
+        // hatchEgg rolls at egg odds (1/7) and marks the egg as hatched in the DB
+        const { isShiny } = await inventoryService.hatchEgg(user.id);
+
+        // forceShiny passes the pre-rolled shiny result; excludedIds is not
+        // applied here — egg hatches can produce a duplicate as a bonus catch.
+        const pokemon = await pokemonService.getRandomPokemon({ forceShiny: isShiny });
+        await dbService.addUserPokemon(user, pokemon, 'Egg Hatch');
+
+        // Refresh both collection and inventory for the updated profile
+        const updatedCollection = await dbService.getUserAllPokemons(user.id);
+        const updatedInventory  = await inventoryService.getUserInventory(user.id);
+        const eggState          = await inventoryService.getEggState(user.id);
+        const stats             = computeProfileStats(updatedCollection, updatedInventory);
+
+        // Update the profile embed in place, then send the hatched pokemon as a new message
+        await i.update({
+          embeds:     [createProfileEmbed(user, stats)],
+          components: [buildProfileButtons(eggState)],
+        });
+        await i.followUp({ embeds: [createPotdEmbed(pokemon, user.id)] });
+      }
     });
 
   } catch (error) {
@@ -93,27 +183,18 @@ async function handlePokedex(interaction, user) {
   }
 }
 
-async function handleDebugShiny(interaction) {
-  return interaction.showModal(buildModal());
-}
-
-async function handleEvent(interaction) {
-  return interaction.showModal(buildModal('event_modal'));
-}
-
-// ─── Modal submissions ─────────────────────────────────────────────────────────
+// ─── Modal submissions ────────────────────────────────────────────────────────
 
 async function handleModalSubmit(interaction) {
   const { user } = interaction;
+  const input    = interaction.fields.getTextInputValue('password_field');
 
+  // ── /potd-debug-shiny ──────────────────────────────────────────────────────
   if (interaction.customId === 'modal') {
-    const input = interaction.fields.getTextInputValue('password_field');
-
     if (input !== process.env.DEBUG_PASSWORD) {
       console.warn(`[DEBUG] ${user.tag} failed password attempt`);
       return interaction.reply({ content: 'Access denied.', flags: MessageFlags.Ephemeral });
     }
-
     try {
       await interaction.deferReply();
       const pokemon = await commandHandlers['potd-debug-shiny']();
@@ -124,14 +205,12 @@ async function handleModalSubmit(interaction) {
     }
   }
 
-    if (interaction.customId === 'event_modal') {
-    const input = interaction.fields.getTextInputValue('password_field');
-
+  // ── /potd-event ────────────────────────────────────────────────────────────
+  if (interaction.customId === 'event_modal') {
     if (input !== process.env.EVENT_PASSWORD) {
       console.warn(`[EVENT] ${user.tag} failed password attempt`);
       return interaction.reply({ content: 'Access denied.', flags: MessageFlags.Ephemeral });
     }
-
     try {
       await interaction.deferReply();
       const pokemons = await commandHandlers['potd-event']();

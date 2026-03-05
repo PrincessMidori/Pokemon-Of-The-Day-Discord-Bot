@@ -66,10 +66,22 @@ async function getTotalCatchCount() {
   }
 }
 
+// Returns every catch entry across all users.
+// Only used for the retroactive egg migration script — do not call at runtime.
+async function getAllEntries() {
+  try {
+    return await CatchEntry.find({}).lean();
+  } catch (error) {
+    console.error('[✗] getAllEntries:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   initializeDatabase,
   addUserPokemon,
   getUserRecentPokemon,
   getUserAllPokemons,
   getTotalCatchCount,
+  getAllEntries,
 };

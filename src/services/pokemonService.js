@@ -2,14 +2,20 @@ const { TOTAL_POKEMON_COUNT, SHINY_CHANCE } = require('../constants');
 
 const POKEAPI_URL = 'https://pokeapi.co/api/v2';
 
-async function getRandomPokemon({ debug = false, excludedIds = [] } = {}) {
+async function getRandomPokemon({ debug = false, excludedIds = [], shinyCharmActive = false, forceShiny = null } = {}) {
   try {
-    // Roll for shiny (debug always forces shiny)
-    const shinyRoll = Math.random();
-    const isShiny   = shinyRoll < (debug ? 1 / 2 : SHINY_CHANCE); // Debug mode sets shiny odds to 1 / 2
-
-    const distance = (shinyRoll - SHINY_CHANCE).toFixed(5);
-    console.log(`[Shiny roll] ${shinyRoll.toFixed(5)} (threshold: ${SHINY_CHANCE.toFixed(5)}) → ${isShiny ? '✨ SHINY' : 'normal'} (${distance} away)`);
+    // forceShiny is set when hatching an egg — the shiny result was already
+    // rolled at egg odds by inventoryService.hatchEgg, so we skip the normal roll.
+    let isShiny;
+    if (forceShiny !== null) {
+      isShiny = forceShiny;
+      console.log(`[Egg hatch] Shiny forced to: ${isShiny ? '✨ SHINY' : 'normal'}`);
+    } else {
+      const effectiveChance = SHINY_CHANCE * (shinyCharmActive ? 2 : 1);
+      const shinyRoll = Math.random();
+      // Roll for shiny (debug sets odds for shiny 1 / 2)
+      isShiny = shinyRoll < (debug ? 1 / 2 : effectiveChance);
+    }
 
     // Build the pool of available IDs
     const allIds       = Array.from({ length: TOTAL_POKEMON_COUNT }, (_, i) => i + 1);

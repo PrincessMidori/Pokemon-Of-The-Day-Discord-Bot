@@ -1,6 +1,7 @@
-const { COLORS, TOTAL_POKEMON_COUNT } = require('../constants');
+const { COLORS, TOTAL_POKEMON_COUNT, EGG_SPRITE_URL, SHINY_CHARM_SPRITE_URL } = require('../constants');
 
-// Embed for /potd result
+// ─── /potd result ─────────────────────────────────────────────────────────────
+
 function createPotdEmbed(pokemon, userId) {
   const trainer     = `<@${userId}>`;
   const displayName = pokemon.isShiny ? `✨ ${pokemon.name} ✨` : pokemon.name;
@@ -28,7 +29,8 @@ function createPotdEmbed(pokemon, userId) {
   };
 }
 
-// Embed for /potd-pokedex result
+// ─── /potd-pokedex result ─────────────────────────────────────────────────────
+
 function createPokedexEmbed(user, collection, page = 0) {
   const entry          = collection[page];
   const pokemon        = entry.pokemon;
@@ -50,20 +52,91 @@ function createPokedexEmbed(user, collection, page = 0) {
   };
 }
 
-// Embed for /potd-event result
+// ─── /potd-event result ───────────────────────────────────────────────────────
+
 function createEventEmbed(user, pokemons) {
   const list = pokemons
     .map((p, i) => `**${i + 1}.** #${p.id} — ${p.name}`)
     .join('\n');
 
-    return {
-      color: COLORS.EVENT,
-      title: '[REDACTED]',
-      description: list,
-      thumbnail: { url: user.displayAvatarURL() },
-      footer:    { text: `Rolled by ${user.displayName}` },
-      timestamp: new Date().toISOString(),
-    }
+  return {
+    color:       COLORS.EVENT,
+    title:       '[REDACTED]',
+    description: list,
+    thumbnail:   { url: user.displayAvatarURL() },
+    footer:      { text: `Rolled by ${user.displayName}` },
+    timestamp:   new Date().toISOString(),
+  };
 }
 
-module.exports = { createPotdEmbed, createPokedexEmbed, createEventEmbed };
+// ─── Profile embed ────────────────────────────────────────────────────────────
+// Receives a pre-computed stats object from computeProfileStats() in
+// src/utils/profileStats.js — does not perform any calculations itself.
+
+function createProfileEmbed(user, stats) {
+  return {
+    color:       COLORS.PROFILE,
+    title:       `${user.displayName}'s Trainer Profile`,
+    thumbnail:   { url: user.displayAvatarURL() },
+    fields: [
+      { name: '📦 Total Caught',    value: String(stats.totalCaught), inline: true  },
+      { name: '✨ Shinies',         value: String(stats.shinyCount),  inline: true  },
+      { name: '🧬 Most Common Type',value: stats.topType,             inline: true  },
+      { name: '🌍 Top Region',      value: stats.topRegion,           inline: true  },
+      { name: '🎒 Inventory',       value: stats.inventorySummary,    inline: false },
+    ],
+    footer:    { text: 'Use the buttons below to manage your eggs.' },
+    timestamp: new Date().toISOString(),
+  };
+}
+
+// ─── Item obtained embed ──────────────────────────────────────────────────────
+// Used when the user earns an egg or an admin grants a shiny charm.
+
+function createItemObtainedEmbed(user, itemType) {
+  const items = {
+    odd_egg: {
+      name:        'Odd Egg',
+      sprite:      EGG_SPRITE_URL,
+      description: [
+        'An Odd Egg obtained as a reward for catching Pokémon!',
+        '',
+        '* Must be **incubated for 24 hours** before it can hatch.',
+        '* Has a **1 in 7** chance of hatching into a Shiny Pokémon.',
+        '* Hatching grants a **bonus Pokémon**, bypassing the 12h cooldown.',
+        '',
+        'Manage your egg via the **START** button in `/potd-pokedex`.',
+      ].join('\n'),
+    },
+    shiny_charm: {
+      name:        'Shiny Charm',
+      sprite:      SHINY_CHARM_SPRITE_URL,
+      description: [
+        'A glittering charm said to improve the odds of finding Shiny Pokémon.',
+        '',
+        '**Doubles your Shiny odds permanently** — now 2 in 300.',
+        '🏆 Awarded for special events.',
+        '',
+        'View it in your profile via the **START** button in `/potd-pokedex`.',
+      ].join('\n'),
+    },
+  };
+
+  const item = items[itemType];
+
+  return {
+    color:       COLORS.ITEM_OBTAINED,
+    title:       `${user.displayName} obtains: ${item.name}!`,
+    thumbnail:   { url: item.sprite },
+    description: item.description,
+    timestamp:   new Date().toISOString(),
+  };
+}
+
+module.exports = {
+  createPotdEmbed,
+  createPokedexEmbed,
+  createEventEmbed,
+  createProfileEmbed,
+  createItemObtainedEmbed,
+};
