@@ -102,7 +102,7 @@ function createItemObtainedEmbed(user, itemType) {
         '',
         '* Must be **incubated for 24 hours** before it can hatch.',
         '* Has a **1 in 7** chance of hatching into a Shiny Pokémon.',
-        '* Hatching grants a **bonus Pokémon**, bypassing the 12h cooldown.',
+        '* Hatching grants a **bonus Pokémon**, bypassing cooldown.',
         '',
         'Manage your egg via the **START** button in `/potd-pokedex`.',
       ].join('\n'),
