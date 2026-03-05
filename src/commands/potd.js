@@ -49,10 +49,8 @@ async function handle(user, guildName) {
     const catchVienna  = toViennaDateString(new Date(recentEntry.timestamp));
 
     if (todayVienna === catchVienna) {
-      const remaining = msUntilMidnightVienna();
-      const hours     = Math.floor(remaining / 3_600_000);
-      const minutes   = Math.floor((remaining % 3_600_000) / 60_000);
-      return { onCooldown: true, timeLeft: `${hours}h ${minutes}m` };
+      const nextMidnightUnix = Math.floor((Date.now() + msUntilMidnightVienna()) / 1000);
+      return { onCooldown: true, timeLeft: `<t:${nextMidnightUnix}:R>` };
     }
   }
 
