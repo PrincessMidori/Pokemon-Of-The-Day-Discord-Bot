@@ -47,7 +47,7 @@ function createPokedexEmbed(user, collection, page = 0) {
       { name: 'Date Caught', value: dateCaught,                              inline: true },
       { name: 'Wiki Entry',  value: `[Bulbapedia Page](${bulbapediaLink})`,  inline: false },
     ],
-    footer:    { text: `L / R — navigate  •  SELECT — add/remove team  •  START — profile ` },
+    footer:    { text: `L / R — navigate  •  SELECT — add/remove team  •  START — profile` },
     timestamp: new Date().toISOString(),
   };
 }
