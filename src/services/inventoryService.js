@@ -1,10 +1,11 @@
 const mongoose = require('mongoose');
-const { EGG_HATCH_HOURS, EGG_SHINY_CHANCE } = require('../constants');
+const { EGG_HATCH_HOURS, EGG_SHINY_CHANCE, MAX_TEAM_SIZE } = require('../constants');
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
 const inventorySchema = new mongoose.Schema({
-  userId: { type: String, required: true, unique: true, index: true },
+  userId:     { type: String, required: true, unique: true, index: true },
+  favourites: { type: [Number], default: [] }, // Pokémon IDs, capped at MAX_TEAM_SIZE
   items: [
     {
       type:         { type: String, enum: ['odd_egg', 'shiny_charm'], required: true },
@@ -20,8 +21,6 @@ const Inventory = mongoose.model('Inventory', inventorySchema);
 
 // ─── Internal helper ──────────────────────────────────────────────────────────
 
-// Returns the inventory document for a user, creating an empty one if it
-// does not exist yet. Used by every public function in this service.
 async function getOrCreate(userId) {
   let inventory = await Inventory.findOne({ userId });
   if (!inventory) {
@@ -86,12 +85,10 @@ async function giveEgg(userId) {
   }
 }
 
-// Grants a shiny charm to a user. Silently skips if one already exists,
-// and returns alreadyOwned: true so the caller can respond accordingly.
 async function grantShinyCharm(userId) {
   try {
-    const inventory   = await getOrCreate(userId);
-    const alreadyHas  = inventory.items.some(item => item.type === 'shiny_charm');
+    const inventory  = await getOrCreate(userId);
+    const alreadyHas = inventory.items.some(item => item.type === 'shiny_charm');
     if (alreadyHas) return { alreadyOwned: true, inventory };
 
     inventory.items.push({ type: 'shiny_charm', obtainedAt: new Date() });
@@ -103,8 +100,6 @@ async function grantShinyCharm(userId) {
   }
 }
 
-// Starts incubation on the first available unincubated egg.
-// Sets incubatingAt to now and hatchesAt to now + EGG_HATCH_HOURS.
 async function startIncubation(userId) {
   try {
     const inventory = await getOrCreate(userId);
@@ -125,8 +120,6 @@ async function startIncubation(userId) {
   }
 }
 
-// Marks the first ready egg as hatched and rolls for shiny at egg odds (1/7).
-// Returns { isShiny } so the caller can pass that result to pokemonService.
 async function hatchEgg(userId) {
   try {
     const inventory = await getOrCreate(userId);
@@ -146,6 +139,32 @@ async function hatchEgg(userId) {
   }
 }
 
+// Adds a Pokémon ID to favourites, or removes it if already present.
+// Returns { added, removed, full } so the caller can send appropriate feedback.
+async function toggleFavourite(userId, pokemonId) {
+  try {
+    const inventory = await getOrCreate(userId);
+    const index     = inventory.favourites.indexOf(pokemonId);
+
+    if (index !== -1) {
+      inventory.favourites.splice(index, 1);
+      await inventory.save();
+      return { added: false, removed: true, full: false };
+    }
+
+    if (inventory.favourites.length >= MAX_TEAM_SIZE) {
+      return { added: false, removed: false, full: true };
+    }
+
+    inventory.favourites.push(pokemonId);
+    await inventory.save();
+    return { added: true, removed: false, full: false };
+  } catch (error) {
+    console.error('[✗] toggleFavourite:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   getUserInventory,
   userHasShinyCharm,
@@ -154,4 +173,5 @@ module.exports = {
   grantShinyCharm,
   startIncubation,
   hatchEgg,
+  toggleFavourite,
 };
