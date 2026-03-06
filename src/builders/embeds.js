@@ -85,7 +85,7 @@ function createProfileEmbed(user, stats) {
     fields: [
       { name: '📦 Total Caught',   value: String(stats.totalCaught), inline: true  },
       { name: '✨ Shinies',        value: String(stats.shinyCount),  inline: true  },
-      { name: '🧬 Favourite Type', value: stats.topType,             inline: true  },
+      { name: '🧬 Top Type',       value: stats.topType,             inline: true  },
       { name: '🌍 Top Region',     value: stats.topRegion,           inline: true  },
       { name: '🎒 Inventory',      value: stats.inventorySummary,    inline: false },
       { name: '⭐ Team',           value: teamValue,                 inline: false },
