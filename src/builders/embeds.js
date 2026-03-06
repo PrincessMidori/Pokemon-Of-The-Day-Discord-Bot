@@ -89,7 +89,6 @@ function createProfileEmbed(user, stats) {
       { name: '🎒 Inventory',      value: stats.inventorySummary,    inline: false },
       { name: '⭐ Team',           value: teamValue,                 inline: false },
     ],
-    timestamp: new Date().toISOString(),
   };
 }
 
