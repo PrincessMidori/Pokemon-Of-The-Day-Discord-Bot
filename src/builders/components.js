@@ -6,15 +6,27 @@ const {
   TextInputBuilder,
   TextInputStyle,
 } = require('discord.js');
+const { MAX_TEAM_SIZE } = require('../constants');
 
-// Navigation buttons for /potd-pokedex — L | START | R
-function buildPokedexButtons(page, collectionLength) {
+// Pokédex navigation row — L | SELECT | START | R
+// pokemonId and favourites drive the SELECT button state.
+function buildPokedexButtons(page, collectionLength, pokemonId, favourites = []) {
+  const isFavourited = favourites.includes(pokemonId);
+  const isFull       = favourites.length >= MAX_TEAM_SIZE;
+
   return new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId('prev')
       .setLabel('L')
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(page === 0),
+    new ButtonBuilder()
+      .setCustomId('select_pokemon')
+      .setLabel('SELECT')
+      // Green = already in team (click removes), grey = not in team (click adds)
+      .setStyle(isFavourited ? ButtonStyle.Success : ButtonStyle.Secondary)
+      // Disabled only when team is full and this pokemon is not already in it
+      .setDisabled(isFull && !isFavourited),
     new ButtonBuilder()
       .setCustomId('profile')
       .setLabel('START')
@@ -27,8 +39,7 @@ function buildPokedexButtons(page, collectionLength) {
   );
 }
 
-// Profile screen buttons — driven by the user's current egg state.
-// eggState is produced by inventoryService.getEggState().
+// Profile screen buttons — driven by egg state from inventoryService.getEggState()
 function buildProfileButtons(eggState) {
   const buttons = [];
 
@@ -47,7 +58,7 @@ function buildProfileButtons(eggState) {
         .setStyle(ButtonStyle.Secondary),
     );
   }
-  // 'waiting' and 'none' show no egg button — timer is visible in the embed itself
+  // 'waiting' and 'none' show no egg button — timer is visible in the embed text
 
   buttons.push(
     new ButtonBuilder()
@@ -59,9 +70,9 @@ function buildProfileButtons(eggState) {
   return new ActionRowBuilder().addComponents(buttons);
 }
 
-// Password modal — reusable for all password-protected commands.
-// Pass a unique customId per command so the modal submit handler can identify
-// which command triggered it. Defaults to 'modal' for /potd-debug-shiny.
+// Password modal — shared by all password-protected commands.
+// Each command passes a unique customId so the modal submit handler can
+// identify which command triggered it. Defaults to 'modal' for debug-shiny.
 function buildModal(customId = 'modal') {
   const passwordInput = new TextInputBuilder()
     .setCustomId('password_field')
