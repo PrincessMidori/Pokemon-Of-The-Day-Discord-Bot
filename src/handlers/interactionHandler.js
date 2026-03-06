@@ -103,6 +103,8 @@ async function handlePotd(interaction, user, guildName) {
 // ─── /potd-pokedex ────────────────────────────────────────────────────────────
 
 async function handlePokedex(interaction, user) {
+  const guildName = interaction.guild?.name ?? 'Direct Message';
+  
   try {
     const collection = await commandHandlers['potd-pokedex'](user);
 
@@ -188,6 +190,7 @@ async function handlePokedex(interaction, user) {
 
         const pokemon = await pokemonService.getRandomPokemon({ forceShiny: isShiny });
         await dbService.addUserPokemon(user, pokemon, 'Egg Hatch');
+        console.log(`[Egg Hatch] ${user.tag} in ${guildName} hatched ${pokemon.name}`);
 
         // Rebuild collection after the new catch, refresh inventory
         const updatedCollection = await dbService.getUserAllPokemons(user.id);
