@@ -104,7 +104,7 @@ async function handlePotd(interaction, user, guildName) {
 
 async function handlePokedex(interaction, user) {
   const guildName = interaction.guild?.name ?? 'Direct Message';
-  
+
   try {
     const collection = await commandHandlers['potd-pokedex'](user);
 
@@ -130,15 +130,18 @@ async function handlePokedex(interaction, user) {
       if (i.user.id !== interaction.user.id) {
         return i.reply({ content: 'Only the owner can interact with this.', flags: MessageFlags.Ephemeral });
       }
+      
+      // Guard against stale client state sending an out-of-bounds page
+      page = Math.max(0, Math.min(collection.length - 1, page));
 
       // ── Pokédex navigation ───────────────────────────────────────────────
       if (i.customId === 'prev') {
-        page--;
+        page = Math.max(0, page - 1);
         return i.update(buildPokedexView(user, collection, page, inventory));
       }
 
       if (i.customId === 'next') {
-        page++;
+        page = Math.min(collection.length - 1, page + 1);
         return i.update(buildPokedexView(user, collection, page, inventory));
       }
 
