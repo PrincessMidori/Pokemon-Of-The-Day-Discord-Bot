@@ -22,10 +22,11 @@ module.exports = {
   // Event specific values
   EVENT_POOL_SIZE: 10,
 
-  // Inventory / eggs
-  EGG_CATCH_THRESHOLD: 7,           // give one egg every N catches
-  EGG_HATCH_HOURS:     24,           // hours to incubate before hatching
-  EGG_SHINY_CHANCE:    1 / 7,        // odds of shiny when egg hatches
+  // Inventory / eggs / profile
+  MAX_TEAM_SIZE:       6,             // size of the team in profile
+  EGG_CATCH_THRESHOLD: 7,             // give one egg every N catches
+  EGG_HATCH_HOURS:     24,            // hours to incubate before hatching
+  EGG_SHINY_CHANCE:    1 / 7,         // odds of shiny when egg hatches
 
   // Item sprite URLs
   EGG_SPRITE_URL:          'https://raw.githubusercontent.com/PokeAPI/sprites/dc262cee6317d896ef51c12ccd881ace9f84deba/sprites/items/mystery-egg.png',
