@@ -28,6 +28,34 @@ async function handleInteraction(interaction) {
   }
 }
 
+// ─── Render helpers ───────────────────────────────────────────────────────────
+// These assemble the full { embeds, components } payload for each screen.
+// All button handlers call one of these — adding new buttons or fields only
+
+// Produces the embed + buttons for a single Pokédex page.
+function buildPokedexView(user, collection, page, inventory) {
+  return {
+    embeds:     [createPokedexEmbed(user, collection, page)],
+    components: [buildPokedexButtons(
+      page,
+      collection.length,
+      collection[page].pokemon.id,
+      inventory.favourites ?? [],
+    )],
+  };
+}
+
+// Fetches egg state, computes stats, and produces the embed + buttons for
+// the profile screen. Async because getEggState hits the database.
+async function buildProfileView(user, collection, inventory) {
+  const eggState = await inventoryService.getEggState(user.id);
+  const stats    = computeProfileStats(collection, inventory);
+  return {
+    embeds:     [createProfileEmbed(user, stats)],
+    components: [buildProfileButtons(eggState)],
+  };
+}
+
 // ─── Slash command router ─────────────────────────────────────────────────────
 
 async function handleSlashCommand(interaction) {
@@ -58,9 +86,8 @@ async function handlePotd(interaction, user, guildName) {
     await interaction.deferReply();
     await interaction.editReply({ embeds: [createPotdEmbed(result.pokemon, user.id)] });
 
-    // If the user crossed an egg threshold, send a follow-up embed to the same channel
     if (result.newEgg) {
-      console.log(`[Odd Egg]: ${user.tag} in ${guildName} got an Odd Egg`);
+      console.log(`[Odd Egg] ${user.tag} in ${guildName} got an Odd Egg`);
       await interaction.followUp({ embeds: [createItemObtainedEmbed(user, 'odd_egg')] });
     }
 
@@ -83,16 +110,15 @@ async function handlePokedex(interaction, user) {
       return interaction.reply({ content: 'Your collection is empty.', flags: MessageFlags.Ephemeral });
     }
 
-    let page = 0;
+    let page      = 0;
+    let inventory = await inventoryService.getUserInventory(user.id);
 
     const { resource } = await interaction.reply({
-      embeds:       [createPokedexEmbed(user, collection, page)],
-      components:   [buildPokedexButtons(page, collection.length)],
+      ...buildPokedexView(user, collection, page, inventory),
       withResponse: true,
     });
     const response = resource.message;
 
-    // Collector listens for all button clicks on this message for 5 minutes
     const collector = response.createMessageComponentCollector({
       componentType: ComponentType.Button,
       time:          300_000,
@@ -103,78 +129,72 @@ async function handlePokedex(interaction, user) {
         return i.reply({ content: 'Only the owner can interact with this.', flags: MessageFlags.Ephemeral });
       }
 
-      // ── Pokedex navigation ───────────────────────────────────────────────
+      // ── Pokédex navigation ───────────────────────────────────────────────
       if (i.customId === 'prev') {
         page--;
-        return i.update({
-          embeds:     [createPokedexEmbed(user, collection, page)],
-          components: [buildPokedexButtons(page, collection.length)],
-        });
+        return i.update(buildPokedexView(user, collection, page, inventory));
       }
 
       if (i.customId === 'next') {
         page++;
-        return i.update({
-          embeds:     [createPokedexEmbed(user, collection, page)],
-          components: [buildPokedexButtons(page, collection.length)],
-        });
+        return i.update(buildPokedexView(user, collection, page, inventory));
+      }
+
+      // ── Team: toggle favourite ───────────────────────────────────────────
+      if (i.customId === 'select_pokemon') {
+        const currentPokemon = collection[page].pokemon;
+        const result         = await inventoryService.toggleFavourite(user.id, currentPokemon.id);
+
+        if (result.full) {
+          return i.reply({
+            content: `Your team is full (${inventory.favourites.length}/${require('../constants').MAX_TEAM_SIZE}). Remove one first.`,
+            flags:   MessageFlags.Ephemeral,
+          });
+        }
+
+        // Refresh inventory so the SELECT button colour updates immediately
+        inventory = await inventoryService.getUserInventory(user.id);
+
+        const feedback = result.added
+          ? `⭐ **${currentPokemon.name}** added to your team!`
+          : `✖️ **${currentPokemon.name}** removed from your team.`;
+
+        // Update the buttons in place, then send feedback as an ephemeral reply
+        await i.update({ components: buildPokedexView(user, collection, page, inventory).components });
+        return i.followUp({ content: feedback, flags: MessageFlags.Ephemeral });
       }
 
       // ── Profile screen ───────────────────────────────────────────────────
       if (i.customId === 'profile') {
-        const inventory = await inventoryService.getUserInventory(user.id);
-        const eggState  = await inventoryService.getEggState(user.id);
-        const stats     = computeProfileStats(collection, inventory);
-
-        return i.update({
-          embeds:     [createProfileEmbed(user, stats)],
-          components: [buildProfileButtons(eggState)],
-        });
+        inventory = await inventoryService.getUserInventory(user.id);
+        return i.update(await buildProfileView(user, collection, inventory));
       }
 
       if (i.customId === 'back_to_pokedex') {
-        return i.update({
-          embeds:     [createPokedexEmbed(user, collection, page)],
-          components: [buildPokedexButtons(page, collection.length)],
-        });
+        inventory = await inventoryService.getUserInventory(user.id);
+        return i.update(buildPokedexView(user, collection, page, inventory));
       }
 
       // ── Egg: start incubation ────────────────────────────────────────────
       if (i.customId === 'incubate_egg') {
         await inventoryService.startIncubation(user.id);
-
-        const inventory = await inventoryService.getUserInventory(user.id);
-        const eggState  = await inventoryService.getEggState(user.id);
-        const stats     = computeProfileStats(collection, inventory);
-
-        return i.update({
-          embeds:     [createProfileEmbed(user, stats)],
-          components: [buildProfileButtons(eggState)],
-        });
+        inventory = await inventoryService.getUserInventory(user.id);
+        return i.update(await buildProfileView(user, collection, inventory));
       }
 
       // ── Egg: hatch ───────────────────────────────────────────────────────
       if (i.customId === 'hatch_egg') {
-        // hatchEgg rolls at egg odds (1/7) and marks the egg as hatched in the DB
         const { isShiny } = await inventoryService.hatchEgg(user.id);
 
-        // forceShiny passes the pre-rolled shiny result; excludedIds is not
-        // applied here — egg hatches can produce a duplicate as a bonus catch.
         const pokemon = await pokemonService.getRandomPokemon({ forceShiny: isShiny });
         await dbService.addUserPokemon(user, pokemon, 'Egg Hatch');
 
-        // Refresh both collection and inventory for the updated profile
+        // Rebuild collection after the new catch, refresh inventory
         const updatedCollection = await dbService.getUserAllPokemons(user.id);
-        const updatedInventory  = await inventoryService.getUserInventory(user.id);
-        const eggState          = await inventoryService.getEggState(user.id);
-        const stats             = computeProfileStats(updatedCollection, updatedInventory);
+        inventory               = await inventoryService.getUserInventory(user.id);
 
-        // Update the profile embed in place, then send the hatched pokemon as a new message
-        await i.update({
-          embeds:     [createProfileEmbed(user, stats)],
-          components: [buildProfileButtons(eggState)],
-        });
-        await i.followUp({ embeds: [createPotdEmbed(pokemon, user.id)] });
+        await i.update(await buildProfileView(user, updatedCollection, inventory));
+        return i.followUp({ embeds: [createPotdEmbed(pokemon, user.id)] });
       }
     });
 
