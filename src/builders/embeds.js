@@ -24,7 +24,7 @@ function createPotdEmbed(pokemon, userId) {
       { name: '⚡ Speed',       value: String(pokemon.speed),       inline: true },
       { name: '📜 Moves',       value: pokemon.moves || 'N/A',      inline: false },
     ],
-    footer:    { text: 'Come back tomorrow for a new Pokémon!' },
+    footer:    { text: 'Cooldown resets at Midnight - CET(Berlin/Vienna)' },
     timestamp: new Date().toISOString(),
   };
 }
@@ -47,7 +47,7 @@ function createPokedexEmbed(user, collection, page = 0) {
       { name: 'Date Caught', value: dateCaught,                              inline: true },
       { name: 'Wiki Entry',  value: `[Bulbapedia Page](${bulbapediaLink})`,  inline: false },
     ],
-    footer:    { text: `${TOTAL_POKEMON_COUNT - collection.length} left to catch.` },
+    footer:    { text: `L / R — navigate  •  SELECT — add/remove team  •  START — profile  •  ${TOTAL_POKEMON_COUNT - collection.length} left to catch` },
     timestamp: new Date().toISOString(),
   };
 }
@@ -70,27 +70,31 @@ function createEventEmbed(user, pokemons) {
 }
 
 // ─── Profile embed ────────────────────────────────────────────────────────────
-// Receives a pre-computed stats object from computeProfileStats() in
-// src/utils/profileStats.js — does not perform any calculations itself.
+// Receives a pre-computed stats object from computeProfileStats() —
+// does not perform any calculations itself.
 
 function createProfileEmbed(user, stats) {
+  const teamValue = stats.favouriteNames.length > 0
+    ? stats.favouriteNames.join('\n')
+    : '*No Pokémon in your team yet*';
+
   return {
     color:       COLORS.PROFILE,
     title:       `${user.displayName}'s Trainer Profile`,
     thumbnail:   { url: user.displayAvatarURL() },
     fields: [
-      { name: '📦 Total Caught',    value: String(stats.totalCaught), inline: true  },
-      { name: '✨ Shinies',         value: String(stats.shinyCount),  inline: true  },
-      { name: '🧬 Most Common Type',value: stats.topType,             inline: true  },
-      { name: '🌍 Top Region',      value: stats.topRegion,           inline: true  },
-      { name: '🎒 Inventory',       value: stats.inventorySummary,    inline: false },
+      { name: '📦 Total Caught',   value: String(stats.totalCaught), inline: true  },
+      { name: '✨ Shinies',        value: String(stats.shinyCount),  inline: true  },
+      { name: '🧬 Favourite Type', value: stats.topType,             inline: true  },
+      { name: '🌍 Top Region',     value: stats.topRegion,           inline: true  },
+      { name: '🎒 Inventory',      value: stats.inventorySummary,    inline: false },
+      { name: '⭐ Team',           value: teamValue,                 inline: false },
     ],
     timestamp: new Date().toISOString(),
   };
 }
 
 // ─── Item obtained embed ──────────────────────────────────────────────────────
-// Used when the user earns an egg or an admin grants a shiny charm.
 
 function createItemObtainedEmbed(user, itemType) {
   const items = {
@@ -98,11 +102,11 @@ function createItemObtainedEmbed(user, itemType) {
       name:        'Odd Egg',
       sprite:      EGG_SPRITE_URL,
       description: [
-        'An Odd Egg obtained as a reward for catching Pokémon!',
+        'A mysterious egg obtained as a reward for catching Pokémon!',
         '',
         '* Must be **incubated for 24 hours** before it can hatch.',
         '* Has a **1 in 7** chance of hatching into a Shiny Pokémon.',
-        '* Hatching grants a **bonus Pokémon**, bypassing cooldown.',
+        '* Hatching grants a **bonus Pokémon**, bypassing the daily cooldown.',
         '',
         'Manage your egg via the **START** button in `/potd-pokedex`.',
       ].join('\n'),
@@ -113,10 +117,10 @@ function createItemObtainedEmbed(user, itemType) {
       description: [
         'A glittering charm said to improve the odds of finding Shiny Pokémon.',
         '',
-        '**Doubles your Shiny odds permanently** — now 2 in 300.',
-        '🏆 Awarded for special events.',
+        '✨ **Doubles your Shiny odds permanently** — now 2 in 300.',
+        '🏆 Awarded by admins for special events.',
         '',
-        'View it in your profile via the **START** button in `/potd-pokedex`.',
+        'View it via the **START** button in `/potd-pokedex`.',
       ].join('\n'),
     },
   };
