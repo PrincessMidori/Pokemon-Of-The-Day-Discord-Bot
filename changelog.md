@@ -1,6 +1,16 @@
 # Pokémon Of The Day - Patch notes
   
-  ## v1.3.0 - Changés X and A
+  ## v1.4.0 - Legends of Wooloo
 
-* Added **SELECT** button to the Pokédex. You can add/remove Pokémons to/from your **team** and view it in your profile. This functionality serves as your favourites list for everyone to see. Following the classic games pattern, your **team limit is set to 6 Pokémons**.
-* Fixed minor issues and added small navigation tooltip.
+### QoL changes: 
+* added Pokédex list button for easier interacting with constantly growing collection
+* Daily POTD embed now has information in the footer if you have egg
+* Furthermore a button will appear under POTD embed if you have an egg, reducing the need to go to your profile to manage your eggs
+
+### Bug fixes
+* Fixed a bug when non-binary pokémons would crash the bot if engaging in a fight underwater, on Tuesday afternoon, while holding a silk scarf, when playing in brazilian-portuguese
+* Fixed an actual bug where you could get a duplicate pokemon from an egg if it wasn't a shiny
+* Fixed shinies breaking Bulpapedia link
+
+### Other changes
+* Egg pop-up is now ephemeral (visible only to you) to reduce clutter and pushing away your Pokémon embed
