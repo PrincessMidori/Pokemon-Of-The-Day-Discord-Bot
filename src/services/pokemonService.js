@@ -18,20 +18,29 @@ async function getRandomPokemon({ debug = false, excludedIds = [], shinyCharmAct
     }
 
     // Build the pool of available IDs
-    const allIds       = Array.from({ length: TOTAL_POKEMON_COUNT }, (_, i) => i + 1);
-    const availablePool = isShiny
-      ? allIds                                             // shinies can duplicate
-      : allIds.filter(id => !excludedIds.includes(id));   // normals must be new
-
+    const allIds = Array.from({ length: TOTAL_POKEMON_COUNT }, (_, i) => i + 1);
+ 
+    let availablePool;
+    if (forceShiny !== null) {
+      // Egg hatch path — respect caller-supplied exclusions
+      availablePool = allIds.filter(id => !excludedIds.includes(id));
+      // Fallback: if the entire shiny/normal pool is already owned, allow any ID
+      if (availablePool.length === 0) availablePool = allIds;
+    } else if (isShiny) {
+      availablePool = allIds; // regular shiny: can duplicate
+    } else {
+      availablePool = allIds.filter(id => !excludedIds.includes(id)); // normal: no duplicate
+    }
+ 
     if (availablePool.length === 0) {
       throw new Error('No available Pokémon left in the pool.');
     }
-
+ 
     const randomId = availablePool[Math.floor(Math.random() * availablePool.length)];
-
+ 
     const response = await fetch(`${POKEAPI_URL}/pokemon/${randomId}`);
     if (!response.ok) throw new Error(`PokéAPI Error: ${response.status}`);
-
+ 
     const data = await response.json();
     return formatPokemonData(data, isShiny);
   } catch (error) {
