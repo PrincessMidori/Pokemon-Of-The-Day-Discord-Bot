@@ -2,10 +2,17 @@ const { COLORS, TOTAL_POKEMON_COUNT, EGG_SPRITE_URL, SHINY_CHARM_SPRITE_URL } = 
 
 // ─── /potd result ─────────────────────────────────────────────────────────────
 
-function createPotdEmbed(pokemon, userId) {
+function createPotdEmbed(pokemon, userId, eggState = 'none') {
   const trainer     = `<@${userId}>`;
   const displayName = pokemon.isShiny ? `✨ ${pokemon.name} ✨` : pokemon.name;
-
+ 
+  const eggNotes = {
+    ready:       '  •  🥚 Your egg is ready to hatch!',
+    unincubated: '  •  🥚 You have an egg!',
+    waiting:     '  •  🥚 Egg incubating…',
+  };
+  const footerText = `Cooldown resets at Midnight - CET(Berlin/Vienna)${eggNotes[eggState] ?? ''}`;
+ 
   return {
     color:       pokemon.isShiny ? COLORS.POTD_SHINY : COLORS.POTD_NORMAL,
     title:       `Pokémon of the Day: ${displayName}`,
@@ -24,7 +31,7 @@ function createPotdEmbed(pokemon, userId) {
       { name: '⚡ Speed',       value: String(pokemon.speed),       inline: true },
       { name: '📜 Moves',       value: pokemon.moves || 'N/A',      inline: false },
     ],
-    footer:    { text: 'Cooldown resets at Midnight - CET(Berlin/Vienna)' },
+    footer:    { text: footerText },
     timestamp: new Date().toISOString(),
   };
 }
@@ -32,11 +39,16 @@ function createPotdEmbed(pokemon, userId) {
 // ─── /potd-pokedex result ─────────────────────────────────────────────────────
 
 function createPokedexEmbed(user, collection, page = 0) {
-  const entry          = collection[page];
-  const pokemon        = entry.pokemon;
-  const dateCaught     = new Date(entry.timestamp).toLocaleDateString('en-GB');
-  const bulbapediaLink = `https://bulbapedia.bulbagarden.net/wiki/${pokemon.name}_(Pok%C3%A9mon)`;
-
+  const entry      = collection[page];
+  const pokemon    = entry.pokemon;
+  const dateCaught = new Date(entry.timestamp).toLocaleDateString('en-GB');
+ 
+  // Strip the "Shiny " prefix so the Bulbapedia link points to the correct article.
+  // Shinies don't have separate wiki pages — the normal-form page covers both.
+  const baseName       = pokemon.name.replace(/^Shiny\s+/i, '');
+  const wikiName       = baseName.replace(/ /g, '_');
+  const bulbapediaLink = `https://bulbapedia.bulbagarden.net/wiki/${wikiName}_(Pok%C3%A9mon)`;
+ 
   return {
     color:       COLORS.POKEDEX,
     title:       `${user.displayName}'s Pokédex`,
@@ -47,10 +59,9 @@ function createPokedexEmbed(user, collection, page = 0) {
       { name: 'Date Caught', value: dateCaught,                              inline: true },
       { name: 'Wiki Entry',  value: `[Bulbapedia Page](${bulbapediaLink})`,  inline: false },
     ],
-    footer:    { text: `L / R — navigate  •  SELECT — add/remove team  •  START — profile` },
+    footer:    { text: `L / R — navigate  •  SELECT — add/remove team  •  START — profile  •  📋 — list` },
   };
 }
-
 // ─── /potd-event result ───────────────────────────────────────────────────────
 
 function createEventEmbed(user, pokemons) {
