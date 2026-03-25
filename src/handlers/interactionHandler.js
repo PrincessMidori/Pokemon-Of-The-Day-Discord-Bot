@@ -13,7 +13,9 @@ const {
 }                                     = require('../builders/embeds');
 const {
   buildPokedexButtons,
+  buildPokemonListComponents,
   buildProfileButtons,
+  buildEggButtons,
   buildModal,
 }                                     = require('../builders/components');
 
@@ -31,6 +33,7 @@ async function handleInteraction(interaction) {
 // ─── Render helpers ───────────────────────────────────────────────────────────
 // These assemble the full { embeds, components } payload for each screen.
 // All button handlers call one of these — adding new buttons or fields only
+// requires changes here.
 
 // Produces the embed + buttons for a single Pokédex page.
 function buildPokedexView(user, collection, page, inventory) {
@@ -84,12 +87,77 @@ async function handlePotd(interaction, user, guildName) {
 
     console.log(`POTD: ${user.tag} in ${guildName} got ${result.pokemon.name}`);
     await interaction.deferReply();
-    await interaction.editReply({ embeds: [createPotdEmbed(result.pokemon, user.id)] });
 
+    // Egg state is fetched after the roll so it reflects any newly granted egg.
+    // giveEgg() is called inside commandHandlers['potd'] before it returns,
+    // so the new egg is already in the DB at this point.
+    const eggState = await inventoryService.getEggState(user.id);
+    const eggRow   = buildEggButtons(eggState);           // null if nothing actionable
+    const components = eggRow ? [eggRow] : [];
+
+    const message = await interaction.editReply({
+      embeds:     [createPotdEmbed(result.pokemon, user.id, eggState)],
+      components,
+    });
+
+    // Notify about the new egg — ephemeral so only the catcher sees it.
     if (result.newEgg) {
       console.log(`[Odd Egg] ${user.tag} in ${guildName} got an Odd Egg`);
-      await interaction.followUp({ embeds: [createItemObtainedEmbed(user, 'odd_egg')] });
+      await interaction.followUp({
+        embeds: [createItemObtainedEmbed(user, 'odd_egg')],
+        flags:  MessageFlags.Ephemeral,
+      });
     }
+
+    // Set up a collector for the egg management buttons on this POTD message.
+    // We only bother if there is at least one actionable egg state right now.
+    if (!eggRow) return;
+
+    const potdCollector = message.createMessageComponentCollector({
+      componentType: ComponentType.Button,
+      time:          300_000,
+    });
+
+    potdCollector.on('collect', async (i) => {
+      if (i.user.id !== user.id) {
+        return i.reply({ content: 'Only the owner can interact with this.', flags: MessageFlags.Ephemeral });
+      }
+
+      // ── Egg: start incubation ──────────────────────────────────────────────
+      if (i.customId === 'incubate_egg') {
+        await inventoryService.startIncubation(user.id);
+        const updatedEggState = await inventoryService.getEggState(user.id);
+        const updatedEggRow   = buildEggButtons(updatedEggState);
+        return i.update({
+          embeds:     [createPotdEmbed(result.pokemon, user.id, updatedEggState)],
+          components: updatedEggRow ? [updatedEggRow] : [],
+        });
+      }
+
+      // ── Egg: hatch ─────────────────────────────────────────────────────────
+      if (i.customId === 'hatch_egg') {
+        const { isShiny } = await inventoryService.hatchEgg(user.id);
+
+        // Build the exclusion pool for the hatch separately from the regular
+        // POTD pool: only exclude IDs the user already owns with the *same*
+        // shiny status so normals and shinies have independent duplicate prevention.
+        const currentCollection = await dbService.getUserAllPokemons(user.id);
+        const excludedIds = currentCollection
+          .filter(e => Boolean(e.pokemon.isShiny) === isShiny)
+          .map(e => e.pokemon.id);
+
+        const hatchedPokemon = await pokemonService.getRandomPokemon({ forceShiny: isShiny, excludedIds });
+        await dbService.addUserPokemon(user, hatchedPokemon, 'Egg Hatch');
+        console.log(`[Egg Hatch] ${user.tag} in ${guildName} hatched ${hatchedPokemon.name}`);
+
+        // Remove the egg button from the original POTD message and clear the footer note.
+        await i.update({
+          embeds:     [createPotdEmbed(result.pokemon, user.id, 'none')],
+          components: [],
+        });
+        return i.followUp({ embeds: [createPotdEmbed(hatchedPokemon, user.id)] });
+      }
+    });
 
   } catch (error) {
     console.error('[✗] /potd error:', error);
@@ -112,8 +180,9 @@ async function handlePokedex(interaction, user) {
       return interaction.reply({ content: 'Your collection is empty.', flags: MessageFlags.Ephemeral });
     }
 
-    let page      = 0;
-    let inventory = await inventoryService.getUserInventory(user.id);
+    let page       = 0;
+    let listOffset = 0;          // tracks the first visible entry in list-view
+    let inventory  = await inventoryService.getUserInventory(user.id);
 
     const { resource } = await interaction.reply({
       ...buildPokedexView(user, collection, page, inventory),
@@ -121,20 +190,20 @@ async function handlePokedex(interaction, user) {
     });
     const response = resource.message;
 
+    // Collect both buttons AND select-menu interactions — no componentType filter.
     const collector = response.createMessageComponentCollector({
-      componentType: ComponentType.Button,
-      time:          300_000,
+      time: 300_000,
     });
 
     collector.on('collect', async (i) => {
       if (i.user.id !== interaction.user.id) {
         return i.reply({ content: 'Only the owner can interact with this.', flags: MessageFlags.Ephemeral });
       }
-      
+
       // Guard against stale client state sending an out-of-bounds page
       page = Math.max(0, Math.min(collection.length - 1, page));
 
-      // ── Pokédex navigation ───────────────────────────────────────────────
+      // ── Pokédex navigation ─────────────────────────────────────────────────
       if (i.customId === 'prev') {
         page = Math.max(0, page - 1);
         return i.update(buildPokedexView(user, collection, page, inventory));
@@ -145,7 +214,44 @@ async function handlePokedex(interaction, user) {
         return i.update(buildPokedexView(user, collection, page, inventory));
       }
 
-      // ── Team: toggle favourite ───────────────────────────────────────────
+      // ── List view: open ────────────────────────────────────────────────────
+      if (i.customId === 'list_view') {
+        listOffset = 0;
+        return i.update({
+          embeds:     [createPokedexEmbed(user, collection, page)],
+          components: buildPokemonListComponents(collection, listOffset),
+        });
+      }
+
+      // ── List view: paginate ────────────────────────────────────────────────
+      if (i.customId === 'list_prev') {
+        listOffset = Math.max(0, listOffset - 25);
+        return i.update({
+          embeds:     [createPokedexEmbed(user, collection, page)],
+          components: buildPokemonListComponents(collection, listOffset),
+        });
+      }
+
+      if (i.customId === 'list_next') {
+        listOffset = Math.min(collection.length - 1, listOffset + 25);
+        return i.update({
+          embeds:     [createPokedexEmbed(user, collection, page)],
+          components: buildPokemonListComponents(collection, listOffset),
+        });
+      }
+
+      // ── List view: close (back to normal nav) ──────────────────────────────
+      if (i.customId === 'back_from_list') {
+        return i.update(buildPokedexView(user, collection, page, inventory));
+      }
+
+      // ── List view: jump to selected entry ──────────────────────────────────
+      if (i.customId === 'jump_to_pokemon') {
+        page = Math.max(0, Math.min(collection.length - 1, parseInt(i.values[0], 10)));
+        return i.update(buildPokedexView(user, collection, page, inventory));
+      }
+
+      // ── Team: toggle favourite ─────────────────────────────────────────────
       if (i.customId === 'select_pokemon') {
         const currentPokemon = collection[page].pokemon;
         const result         = await inventoryService.toggleFavourite(user.id, currentPokemon.id);
@@ -169,7 +275,7 @@ async function handlePokedex(interaction, user) {
         return i.followUp({ content: feedback, flags: MessageFlags.Ephemeral });
       }
 
-      // ── Profile screen ───────────────────────────────────────────────────
+      // ── Profile screen ─────────────────────────────────────────────────────
       if (i.customId === 'profile') {
         inventory = await inventoryService.getUserInventory(user.id);
         return i.update(await buildProfileView(user, collection, inventory));
@@ -180,18 +286,25 @@ async function handlePokedex(interaction, user) {
         return i.update(buildPokedexView(user, collection, page, inventory));
       }
 
-      // ── Egg: start incubation ────────────────────────────────────────────
+      // ── Egg: start incubation ──────────────────────────────────────────────
       if (i.customId === 'incubate_egg') {
         await inventoryService.startIncubation(user.id);
         inventory = await inventoryService.getUserInventory(user.id);
         return i.update(await buildProfileView(user, collection, inventory));
       }
 
-      // ── Egg: hatch ───────────────────────────────────────────────────────
+      // ── Egg: hatch ─────────────────────────────────────────────────────────
       if (i.customId === 'hatch_egg') {
         const { isShiny } = await inventoryService.hatchEgg(user.id);
 
-        const pokemon = await pokemonService.getRandomPokemon({ forceShiny: isShiny });
+        // Build the exclusion pool for the hatch separately from the regular
+        // POTD pool: only exclude IDs the user already owns with the *same*
+        // shiny status so normals and shinies have independent duplicate prevention.
+        const excludedIds = collection
+          .filter(e => Boolean(e.pokemon.isShiny) === isShiny)
+          .map(e => e.pokemon.id);
+
+        const pokemon = await pokemonService.getRandomPokemon({ forceShiny: isShiny, excludedIds });
         await dbService.addUserPokemon(user, pokemon, 'Egg Hatch');
         console.log(`[Egg Hatch] ${user.tag} in ${guildName} hatched ${pokemon.name}`);
 
